@@ -1,0 +1,51 @@
+version: 2
+jobs:
+  build:
+    docker:
+      - image: circleci/openjdk:8-jdk-stretch
+
+    steps:
+      - checkout
+
+      - restore_cache:
+          keys:
+            - mcMMO-v1-{{ checksum "pom.xml" }}
+            - mcMMO-v1-
+
+      - run: mvn package install
+
+      - save_cache:
+          paths:
+            - ~/.m2
+          key: mcMMO-v1-{{ checksum "pom.xml" }}
+
+      - store_artifacts:
+          path: target/mcMMO.jar
+
+      - persist_to_workspace:
+          root: ./
+          paths:
+            - .git/
+            - pom.xml
+            - target/mcMMO.jar
+
+  publish-github-release:
+    docker:
+      - image: cibuilds/github:0.10
+    steps:
+      - attach_workspace:
+          at: ./
+      - run:
+          name: 'Publish Release on GitHub'
+          command: |
+            PREV_SHA1=$(git log -2 --pretty=%H | sed -n '2 p')
+            ghr -t ${GITHUB_TOKEN} -u ${CIRCLE_PROJECT_USERNAME} -r ${CIRCLE_PROJECT_REPONAME} -c $PREV_SHA1 -delete ${PREV_SHA1:0:7} ./target/mcMMO.jar
+
+workflows:
+  version: 2
+  build_and_publish:
+    jobs:
+      - build
+      - publish-github-release:
+          requires:
+            - build
