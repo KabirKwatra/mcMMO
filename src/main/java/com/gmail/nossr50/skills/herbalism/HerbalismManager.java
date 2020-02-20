@@ -7,6 +7,7 @@ import com.gmail.nossr50.datatypes.BlockSnapshot;
 import com.gmail.nossr50.datatypes.experience.XPGainReason;
 import com.gmail.nossr50.datatypes.experience.XPGainSource;
 import com.gmail.nossr50.datatypes.interactions.NotificationType;
+import com.gmail.nossr50.datatypes.meta.RecentlyReplantedCropMeta;
 import com.gmail.nossr50.datatypes.player.McMMOPlayer;
 import com.gmail.nossr50.datatypes.skills.PrimarySkillType;
 import com.gmail.nossr50.datatypes.skills.SubSkillType;
@@ -14,6 +15,7 @@ import com.gmail.nossr50.datatypes.skills.SuperAbilityType;
 import com.gmail.nossr50.datatypes.skills.ToolType;
 import com.gmail.nossr50.datatypes.treasure.HylianTreasure;
 import com.gmail.nossr50.mcMMO;
+import com.gmail.nossr50.runnables.skills.DelayedCropReplant;
 import com.gmail.nossr50.runnables.skills.DelayedHerbalismXPCheckTask;
 import com.gmail.nossr50.runnables.skills.HerbalismBlockUpdaterTask;
 import com.gmail.nossr50.skills.SkillManager;
@@ -24,6 +26,8 @@ import com.gmail.nossr50.util.random.RandomChanceUtil;
 import com.gmail.nossr50.util.skills.RankUtils;
 import com.gmail.nossr50.util.skills.SkillActivationType;
 import com.gmail.nossr50.util.skills.SkillUtils;
+import com.gmail.nossr50.util.sounds.SoundManager;
+import com.gmail.nossr50.util.sounds.SoundType;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.block.Block;
@@ -157,6 +161,13 @@ public class HerbalismManager extends SkillManager {
      */
     private void processHerbalismOnBlocksBroken(BlockBreakEvent blockBreakEvent, HashSet<Block> brokenPlants) {
         BlockState originalBreak = blockBreakEvent.getBlock().getState();
+
+        //Check if the plant was recently replanted
+        if(blockBreakEvent.getBlock().getMetadata(mcMMO.REPLANT_META_KEY).size() >= 1) {
+            //Crop is recently replanted to back out of destroying it
+            blockBreakEvent.setCancelled(true);
+            return;
+        }
 
         //TODO: The design of Green Terra needs to change, this is a mess
         if(Permissions.greenThumbPlant(getPlayer(), originalBreak.getType())) {
@@ -640,22 +651,37 @@ public class HerbalismManager extends SkillManager {
     }
 
     /**
+     * Starts the delayed replant task and turns
+     * @param desiredCropAge the desired age of the crop
+     * @param blockBreakEvent the {@link BlockBreakEvent} this crop was involved in
+     * @param cropState the {@link BlockState} of the crop
+     */
+    private void startReplantTask(int desiredCropAge, BlockBreakEvent blockBreakEvent, BlockState cropState, boolean isImmature) {
+        //Mark the plant as recently replanted to avoid accidental breakage
+        blockBreakEvent.getBlock().setMetadata(mcMMO.REPLANT_META_KEY, new RecentlyReplantedCropMeta(mcMMO.p));
+        new DelayedCropReplant(blockBreakEvent, cropState, desiredCropAge, isImmature).runTaskLater(mcMMO.p, 20 * 2);
+    }
+
+    /**
      * Process the Green Thumb ability for plants.
      *
      * @param blockState The {@link BlockState} to check ability activation for
      * @param greenTerra boolean to determine if greenTerra is active or not
      */
     private void processGreenThumbPlants(BlockState blockState, BlockBreakEvent blockBreakEvent, boolean greenTerra) {
-        BlockData blockData = blockState.getBlockData();
-
-        if (!(blockData instanceof Ageable))
-            return;
-
-        //If the ageable is NOT mature and the player is NOT using a hoe, abort
-        if(!isAgeableMature((Ageable) blockData) && !ItemUtils.isHoe(getPlayer().getItemInHand())) {
+        if(blockBreakEvent.getPlayer().isSneaking() || !ItemUtils.isHoe(blockBreakEvent.getPlayer().getInventory().getItemInMainHand())) {
             return;
         }
 
+        BlockData blockData = blockState.getBlockData();
+
+        if (!(blockData instanceof Ageable)) {
+            return;
+        }
+
+        Ageable ageable = (Ageable) blockData;
+
+        //If the ageable is NOT mature and the player is NOT using a hoe, abort
 
         Player player = getPlayer();
         PlayerInventory playerInventory = player.getInventory();
@@ -696,31 +722,38 @@ public class HerbalismManager extends SkillManager {
             return;
         }
 
-        if (!processGrowingPlants(blockState, blockBreakEvent, greenTerra)) {
+
+        if (!playerInventory.containsAtLeast(seedStack, 1)) {
             return;
         }
 
-        if(!ItemUtils.isHoe(getPlayer().getInventory().getItemInMainHand()))
-        {
-            if (!playerInventory.containsAtLeast(seedStack, 1)) {
-                return;
-            }
-
-            playerInventory.removeItem(seedStack);
-            player.updateInventory(); // Needed until replacement available
+        if (!processGrowingPlants(blockState, ageable, blockBreakEvent, greenTerra)) {
+            return;
         }
+
+        playerInventory.removeItem(seedStack);
+        player.updateInventory(); // Needed until replacement available
+        //Play sound
+        SoundManager.sendSound(player, player.getLocation(), SoundType.ITEM_CONSUMED);
 
         new HerbalismBlockUpdaterTask(blockState).runTaskLater(mcMMO.p, 0);
     }
 
-    private boolean processGrowingPlants(BlockState blockState, BlockBreakEvent blockBreakEvent, boolean greenTerra) {
-        Ageable crops = (Ageable) blockState.getBlockData();
+    private boolean processGrowingPlants(BlockState blockState, Ageable ageable, BlockBreakEvent blockBreakEvent, boolean greenTerra) {
+        //This check is needed
+        if(isBizarreAgeable(ageable)) {
+            return false;
+        }
+
+        int finalAge = 0;
         int greenThumbStage = getGreenThumbStage();
 
         //Immature plants will start over at 0
-        if(!isAgeableMature(crops)) {
-            crops.setAge(0);
+        if(!isAgeableMature(ageable)) {
             blockBreakEvent.setCancelled(true);
+            startReplantTask(0, blockBreakEvent, blockState, true);
+            blockState.setType(Material.AIR);
+            blockState.update();
             return true;
         }
 
@@ -733,10 +766,10 @@ public class HerbalismManager extends SkillManager {
             case WHEAT:
 
                 if (greenTerra) {
-                    crops.setAge(3);
+                    finalAge = 3;
                 }
                 else {
-                    crops.setAge(greenThumbStage);
+                    finalAge = getGreenThumbStage();
                 }
                 break;
 
@@ -744,30 +777,32 @@ public class HerbalismManager extends SkillManager {
             case NETHER_WART:
 
                 if (greenTerra || greenThumbStage > 2) {
-                    crops.setAge(2);
+                    finalAge = 2;
                 }
                 else if (greenThumbStage == 2) {
-                    crops.setAge(1);
+                    finalAge = 1;
                 }
                 else {
-                    crops.setAge(0);
+                    finalAge = 0;
                 }
                break;
 
             case COCOA:
 
                 if (greenTerra || getGreenThumbStage() > 1) {
-                    crops.setAge(1);
+                    finalAge = 1;
                 }
                 else {
-                    crops.setAge(0);
+                    finalAge = 0;
                 }
                 break;
 
             default:
                 return false;
         }
-        blockState.setBlockData(crops);
+
+        //Start the delayed replant
+        startReplantTask(finalAge, blockBreakEvent, blockState, false);
         return true;
     }
 
