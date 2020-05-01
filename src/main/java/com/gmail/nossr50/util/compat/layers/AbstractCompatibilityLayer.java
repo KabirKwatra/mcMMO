@@ -7,26 +7,27 @@ import org.jetbrains.annotations.NotNull;
 /**
  *
  * These classes are a band-aid solution for adding NMS support into 2.1.XXX
- * In 2.2 we are switching to modules and that will clean things up significantly
+ * In 2.2 we are switching to modules and that will clean things up
+ * significantly
  *
  */
 public abstract class AbstractCompatibilityLayer implements CompatibilityLayer {
 
-    protected boolean noErrorsOnInitialize = true;
-    protected final @NotNull NMSVersion nmsVersion;
+  protected boolean noErrorsOnInitialize = true;
+  protected final @NotNull NMSVersion nmsVersion;
 
-    public AbstractCompatibilityLayer(@NotNull NMSVersion nmsVersion) {
-        this.nmsVersion = nmsVersion;
-    }
+  public AbstractCompatibilityLayer(@NotNull NMSVersion nmsVersion) {
+    this.nmsVersion = nmsVersion;
+  }
 
-    /**
-     * Initialize the CompatibilityLayer
-     * @return true if the CompatibilityLayer initialized and should be functional
-     */
-    public abstract boolean initializeLayer();
+  /**
+   * Initialize the CompatibilityLayer
+   * @return true if the CompatibilityLayer initialized and should be functional
+   */
+  public abstract boolean initializeLayer();
 
-    @Override
-    public boolean noErrorsOnInitialize() {
-        return noErrorsOnInitialize;
-    }
+  @Override
+  public boolean noErrorsOnInitialize() {
+    return noErrorsOnInitialize;
+  }
 }

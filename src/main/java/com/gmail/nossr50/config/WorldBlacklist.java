@@ -1,93 +1,88 @@
 package com.gmail.nossr50.config;
 
 import com.gmail.nossr50.mcMMO;
-import org.bukkit.World;
-
 import java.io.*;
 import java.util.ArrayList;
+import org.bukkit.World;
 
 /**
  * Blacklist certain features in certain worlds
  */
 public class WorldBlacklist {
-    private static ArrayList<String> blacklist;
-    private mcMMO plugin;
+  private static ArrayList<String> blacklist;
+  private mcMMO plugin;
 
-    private final String blackListFileName = "world_blacklist.txt";
+  private final String blackListFileName = "world_blacklist.txt";
 
-    public WorldBlacklist(mcMMO plugin)
-    {
-        this.plugin = plugin;
-        blacklist = new ArrayList<>();
-        init();
+  public WorldBlacklist(mcMMO plugin) {
+    this.plugin = plugin;
+    blacklist = new ArrayList<>();
+    init();
+  }
+
+  public void init() {
+    // Make the blacklist file if it doesn't exist
+    File blackListFile =
+        new File(plugin.getDataFolder() + File.separator + blackListFileName);
+
+    try {
+      if (!blackListFile.exists())
+        blackListFile.createNewFile();
+    } catch (IOException e) {
+      e.printStackTrace();
     }
 
-    public void init()
-    {
-        //Make the blacklist file if it doesn't exist
-        File blackListFile = new File(plugin.getDataFolder() + File.separator + blackListFileName);
+    // Load up the blacklist
+    loadBlacklist(blackListFile);
+    // registerFlags();
+  }
 
-        try {
-            if(!blackListFile.exists())
-                blackListFile.createNewFile();
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
+  private void loadBlacklist(File blackListFile) {
+    FileReader fileReader = null;
+    BufferedReader bufferedReader = null;
+    try {
+      fileReader = new FileReader(blackListFile);
+      bufferedReader = new BufferedReader(fileReader);
 
-        //Load up the blacklist
-        loadBlacklist(blackListFile);
-        //registerFlags();
+      String currentLine;
+
+      while ((currentLine = bufferedReader.readLine()) != null) {
+        if (currentLine.length() == 0)
+          continue;
+
+        if (!blacklist.contains(currentLine))
+          blacklist.add(currentLine);
+      }
+
+    } catch (IOException e) {
+      e.printStackTrace();
+    } finally {
+      // Close readers
+      closeRead(bufferedReader);
+      closeRead(fileReader);
     }
 
-    private void loadBlacklist(File blackListFile) {
-        FileReader fileReader = null;
-        BufferedReader bufferedReader = null;
-        try {
-            fileReader = new FileReader(blackListFile);
-            bufferedReader = new BufferedReader(fileReader);
+    plugin.getLogger().info(blacklist.size() +
+                            " entries in mcMMO World Blacklist");
+  }
 
-            String currentLine;
+  private void closeRead(Reader reader) {
+    if (reader != null) {
+      try {
+        reader.close();
+      } catch (IOException e) {
+        e.printStackTrace();
+      }
+    }
+  }
 
-            while((currentLine = bufferedReader.readLine()) != null)
-            {
-                if(currentLine.length() == 0)
-                    continue;
+  public static boolean isWorldBlacklisted(World world) {
 
-                if(!blacklist.contains(currentLine))
-                    blacklist.add(currentLine);
-            }
-
-
-        } catch (IOException e) {
-            e.printStackTrace();
-        } finally {
-            //Close readers
-            closeRead(bufferedReader);
-            closeRead(fileReader);
-        }
-
-        plugin.getLogger().info(blacklist.size()+" entries in mcMMO World Blacklist");
+    for (String s : blacklist) {
+      if (world.getName().equalsIgnoreCase(s))
+        return true;
     }
 
-    private void closeRead(Reader reader) {
-        if(reader != null) {
-            try {
-                reader.close();
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
-        }
-    }
-
-    public static boolean isWorldBlacklisted(World world)
-    {
-
-        for(String s : blacklist)
-        {
-            if(world.getName().equalsIgnoreCase(s))
-                return true;
-        }
-
-        return false;
-    }
+    return false;
+  }
 }
