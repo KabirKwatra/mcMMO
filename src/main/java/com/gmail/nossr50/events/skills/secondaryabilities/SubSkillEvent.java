@@ -7,40 +7,61 @@ import com.gmail.nossr50.events.skills.McMMOPlayerSkillEvent;
 import org.bukkit.entity.Player;
 import org.bukkit.event.Cancellable;
 
-public class SubSkillEvent extends McMMOPlayerSkillEvent implements Cancellable {
-    private SubSkillType subSkillType;
-    private boolean cancelled = false;
+public class SubSkillEvent
+    extends McMMOPlayerSkillEvent implements Cancellable {
+  private SubSkillType subSkillType;
+  private boolean cancelled = false;
+  private double resultModifier = 1.0D;
 
-    /**
-     * Only skills using the old system will fire this event
-     * @param player target player
-     * @param subSkillType target subskill
-     * @Deprecated Skills will be using a new system stemming from the AbstractSubSkill class so make sure you check for both events, this event will be removed eventually.
-     */
-    @Deprecated
-    public SubSkillEvent(Player player, SubSkillType subSkillType) {
-        super(player, PrimarySkillType.bySecondaryAbility(subSkillType));
-        this.subSkillType = subSkillType;
-    }
+  /**
+   * Only skills using the old system will fire this event
+   * @param player target player
+   * @param subSkillType target subskill
+   * @Deprecated Skills will be using a new system stemming from the
+   * AbstractSubSkill class so make sure you check for both events, this event
+   * will be removed eventually.
+   */
+  @Deprecated
+  public SubSkillEvent(Player player, SubSkillType subSkillType) {
+    super(player, PrimarySkillType.bySecondaryAbility(subSkillType));
+    this.subSkillType = subSkillType;
+  }
 
-    public SubSkillEvent(Player player, AbstractSubSkill abstractSubSkill)
-    {
-        super(player, abstractSubSkill.getPrimarySkill());
-    }
+  /**
+   * Only skills using the old system will fire this event
+   * @param player target player
+   * @param subSkillType target subskill
+   * @param resultModifier a value multiplied against the final result of the
+   *     dice roll, typically between 0-1.0
+   * @Deprecated Skills will be using a new system stemming from the
+   * AbstractSubSkill class so make sure you check for both events, this event
+   * will be removed eventually.
+   */
+  @Deprecated
+  public SubSkillEvent(Player player, SubSkillType subSkillType,
+                       double resultModifier) {
+    super(player, PrimarySkillType.bySecondaryAbility(subSkillType));
+    this.subSkillType = subSkillType;
+    this.resultModifier = resultModifier;
+  }
 
-    /**
-     * Gets the SubSkillType involved in the event
-     * @return the SubSkillType
-     */
-    public SubSkillType getSubSkillType() {
-        return subSkillType;
-    }
+  public SubSkillEvent(Player player, AbstractSubSkill abstractSubSkill) {
+    super(player, abstractSubSkill.getPrimarySkill());
+  }
 
-    public boolean isCancelled() {
-        return cancelled;
-    }
+  public double getResultModifier() { return resultModifier; }
 
-    public void setCancelled(boolean newValue) {
-        this.cancelled = newValue;
-    }
+  public void setResultModifier(double resultModifier) {
+    this.resultModifier = resultModifier;
+  }
+
+  /**
+   * Gets the SubSkillType involved in the event
+   * @return the SubSkillType
+   */
+  public SubSkillType getSubSkillType() { return subSkillType; }
+
+  public boolean isCancelled() { return cancelled; }
+
+  public void setCancelled(boolean newValue) { this.cancelled = newValue; }
 }
