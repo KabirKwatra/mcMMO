@@ -38,7 +38,10 @@ import com.gmail.nossr50.util.*;
 import com.gmail.nossr50.util.blockmeta.chunkmeta.ChunkManager;
 import com.gmail.nossr50.util.blockmeta.chunkmeta.ChunkManagerFactory;
 import com.gmail.nossr50.util.commands.CommandRegistrationManager;
+import com.gmail.nossr50.util.compat.CompatibilityManager;
 import com.gmail.nossr50.util.experience.FormulaManager;
+import com.gmail.nossr50.util.platform.PlatformManager;
+import com.gmail.nossr50.util.platform.ServerSoftwareType;
 import com.gmail.nossr50.util.player.PlayerLevelUtils;
 import com.gmail.nossr50.util.player.UserManager;
 import com.gmail.nossr50.util.scoreboards.ScoreboardManager;
@@ -62,10 +65,10 @@ import java.io.InputStreamReader;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Locale;
 
 public class mcMMO extends JavaPlugin {
     /* Managers */
+    private static PlatformManager platformManager;
     private static ChunkManager       placeStore;
     private static RepairableManager  repairableManager;
     private static SalvageableManager salvageableManager;
@@ -134,13 +137,19 @@ public class mcMMO extends JavaPlugin {
 
     public static FixedMetadataValue metadataValue;
 
+    public mcMMO() {
+        p = this;
+    }
+
     /**
      * Things to be run when the plugin is enabled.
      */
     @Override
     public void onEnable() {
         try {
-            p = this;
+            //Platform Manager
+            platformManager = new PlatformManager();
+
             getLogger().setFilter(new LogFilter(this));
             metadataValue = new FixedMetadataValue(this, true);
 
@@ -152,6 +161,9 @@ public class mcMMO extends JavaPlugin {
             setupFilePaths();
 
             modManager = new ModManager();
+
+            //Init Material Maps
+            materialMapStore = new MaterialMapStore();
 
             loadConfigFiles();
 
@@ -185,10 +197,10 @@ public class mcMMO extends JavaPlugin {
                 Bukkit
                         .getScheduler()
                         .scheduleSyncRepeatingTask(this,
-                                () -> getLogger().severe("You are running an outdated version of "+getServerSoftware()+", mcMMO will not work unless you update to a newer version!"),
+                                () -> getLogger().severe("You are running an outdated version of "+platformManager.getServerSoftware()+", mcMMO will not work unless you update to a newer version!"),
                         20, 20*60*30);
 
-                if(getServerSoftware() == ServerSoftwareType.CRAFTBUKKIT)
+                if(platformManager.getServerSoftware() == ServerSoftwareType.CRAFT_BUKKIT)
                 {
                     Bukkit.getScheduler()
                             .scheduleSyncRepeatingTask(this,
@@ -250,9 +262,6 @@ public class mcMMO extends JavaPlugin {
             getServer().getPluginManager().disablePlugin(this);
         }
 
-        //Init Material Maps
-        materialMapStore = new MaterialMapStore();
-
         //Init player level values
         playerLevelUtils = new PlayerLevelUtils();
 
@@ -275,37 +284,8 @@ public class mcMMO extends JavaPlugin {
             Class<?> checkForClassBaseComponent = Class.forName("net.md_5.bungee.api.chat.BaseComponent");
         } catch (ClassNotFoundException | NoSuchMethodException e) {
             serverAPIOutdated = true;
-            String software = getServerSoftwareStr();
+            String software = platformManager.getServerSoftwareStr();
             getLogger().severe("You are running an older version of " + software + " that is not compatible with mcMMO, update your server software!");
-        }
-    }
-
-    private enum ServerSoftwareType {
-        PAPER,
-        SPIGOT,
-        CRAFTBUKKIT
-    }
-
-    private ServerSoftwareType getServerSoftware()
-    {
-        if(Bukkit.getVersion().toLowerCase(Locale.ENGLISH).contains("paper"))
-            return ServerSoftwareType.PAPER;
-        else if(Bukkit.getVersion().toLowerCase(Locale.ENGLISH).contains("spigot"))
-            return ServerSoftwareType.SPIGOT;
-        else
-            return ServerSoftwareType.CRAFTBUKKIT;
-    }
-
-    private String getServerSoftwareStr()
-    {
-        switch(getServerSoftware())
-        {
-            case PAPER:
-                return "Paper";
-            case SPIGOT:
-                return "Spigot";
-            default:
-                return "CraftBukkit";
         }
     }
 
@@ -434,6 +414,10 @@ public class mcMMO extends JavaPlugin {
 
     public static UpgradeManager getUpgradeManager() {
         return upgradeManager;
+    }
+
+    public static CompatibilityManager getCompatibilityManager() {
+        return platformManager.getCompatibilityManager();
     }
 
     @Deprecated
@@ -578,7 +562,7 @@ public class mcMMO extends JavaPlugin {
 
         if(CoreSkillsConfig.getInstance().isPrimarySkillEnabled(PrimarySkillType.ACROBATICS))
         {
-            System.out.println("[mcMMO]" + " enabling Acrobatics Skills");
+            getLogger().info("Enabling Acrobatics Skills");
 
             //TODO: Should do this differently
             Roll roll = new Roll();
@@ -683,5 +667,9 @@ public class mcMMO extends JavaPlugin {
 
     public static WorldBlacklist getWorldBlacklist() {
         return worldBlacklist;
+    }
+
+    public static PlatformManager getPlatformManager() {
+        return platformManager;
     }
 }

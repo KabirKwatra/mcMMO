@@ -19,6 +19,11 @@ load: POSTWORLD
 api-version: 1.13
 
 commands:
+    mmoxpbar:
+        aliases: xpbarsettings
+        description: Change XP bar settings
+    mmocompat:
+        description: Information about the server and whether or not its considered fully compatible or running in compatibility mode
     mmodebug:
         aliases: [mcmmodebugmode]
         description: Toggles a debug mode which will print useful information to chat
@@ -167,8 +172,9 @@ commands:
         aliases: [mcsb]
         description: Manage your mcMMO Scoreboard
         permission: mcmmo.commands.mcscoreboard
-    mcfools:
-        aliases: [macho, jumping, throwing, wrecking, crafting, walking, swimming, falling, climbing, flying, diving, piggy]
+    #mcfools:
+    crafting:
+        aliases: [macho, jumping, throwing, wrecking, walking, swimming, falling, climbing, flying, diving, piggy]
         description: Deploy jokes
         permission: mcmmo.commands.mcfools
     mcmmoreloadlocale:

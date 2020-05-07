@@ -96,6 +96,7 @@ public class McMMOPlayer {
     private int respawnATS;
     private int teleportATS;
     private long databaseATS;
+    private double attackStrength; //captured during arm swing events
     //private int chimeraWingLastUse;
     private Location teleportCommence;
 
@@ -142,10 +143,19 @@ public class McMMOPlayer {
         experienceBarManager = new ExperienceBarManager(this);
 
         debugMode = false; //Debug mode helps solve support issues, players can toggle it on or off
+        attackStrength = 1.0D;
     }
 
     public String getPlayerName() {
         return playerName;
+    }
+
+    public double getAttackStrength() {
+        return attackStrength;
+    }
+
+    public void setAttackStrength(double attackStrength) {
+        this.attackStrength = attackStrength;
     }
 
     /*public void hideXpBar(PrimarySkillType primarySkillType)
@@ -180,21 +190,24 @@ public class McMMOPlayer {
 
     public void updateXPBar(PrimarySkillType primarySkillType, Plugin plugin)
     {
-        //Skill Unlock Notifications
-
-        if(primarySkillType.isChildSkill())
-            return;
-
         //XP BAR UPDATES
         experienceBarManager.updateExperienceBar(primarySkillType, plugin);
     }
 
     public double getProgressInCurrentSkillLevel(PrimarySkillType primarySkillType)
     {
+        if(primarySkillType.isChildSkill()) {
+            return 1.0D;
+        }
+
         double currentXP = profile.getSkillXpLevel(primarySkillType);
         double maxXP = profile.getXpToLevel(primarySkillType);
 
         return (currentXP / maxXP);
+    }
+
+    public ExperienceBarManager getExperienceBarManager() {
+        return experienceBarManager;
     }
 
     public AcrobaticsManager getAcrobaticsManager() {

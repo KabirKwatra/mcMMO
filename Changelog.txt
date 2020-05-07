@@ -1,7 +1,158 @@
+Version 2.1.129
+    Added new subcommand /mmoxpbar disable - Hides all mcMMO XP bars
+    New locale string 'Commands.XPBar.DisableAll'
+
+Version 2.1.128
+    The first rank of Iron Arm for Unarmed now only gives 1.5 bonus damage instead of 4 (other ranks are the same as before)
+    Blast Mining nerf reverted
+    Fixed a bug where debris were not reduced from Blast Mining skills
+    Fixed a bug where certain types of ore did not receive bonuses from Blast Mining
+    Fixed a few locale errors with commands
+    (API) Added ExperienceAPI::addCombatXP for adding combat XP to players, signature may change so its deprecated for now
+    mcMMO now logs whether or not its using FlatFile or SQL database on load
+    (1.16) Strider added to combat experience with a value of 1.2
+
+    NOTES: A more thorough look at Unarmed balance will happen in the future, the intention of this nerf is to make Unarmed less rewarding until it is leveled quite a bit.
+    I do plan to add saving XP bar settings to an upcoming version of mcMMO, but I'm working on another thing for mcMMO atm.
+
+Version 2.1.127
+    Child Skills now have XP bars, they are hidden by default
+    Updated hu_HU locale (thanks andris155)
+    Updated korean locale (thanks GownHeeJun)
+    Fixed a potential resource leak (thanks f1xme)
+    Fixed some potential chunk bugs (thanks f1xme)
+
+
+    NOTES:
+    You can enable the child skill bars with the command /mmoxpbar <skill> show
+
+Version 2.1.126
+    mcMMO now relies on NMS for some of its features, if NMS cannot properly be wired up when initializing mcMMO behaviours relying on NMS will either be partially supported or disabled
+    mcMMO now has a compatibility mode, any features that require specific versions of Minecraft for full functionality will be disabled if your server is not running a compatible version, mcMMO will still function in compatibility mode, but either the feature will be modified or disabled depending on the version of the server software
+    New command /mmocompat - Shows information about whether or not mcMMO is fully functional or if some features are disabled due to the server software not being fully supported. Can be used by players or console.
+    New command /mmoxpbar (alias /xpbarsettings) - Players can choose to always show XP bars or to never show XP bars on a per skill basis
+    XPBars now last for 3 seconds before hiding instead of 2 seconds
+    Fixed an exploit involving fishing rods
+    mcMMO is now less verbose about unsupported materials found in configs
+
+    New locale strings
+        Commands.Description.mmoxpbar
+        Commands.Description.mmocompat
+        Commands.XPBar.Reset
+        Commands.XPBar.SettingChanged
+        Compatibility.Layer.Unsupported
+        Compatibility.Layer.PartialSupport
+
+
+    Notes:
+        There are no features that rely on NMS in this version, it took a lot of work to write the NMS framework and I'm going to delay implementation for future versions.
+        /mmoxpbar (or /xpbarsettings) example usages
+            /mmoxpbar show archery - Always show archery XP bar
+            /mmoxpbar hide acrobatics - Never show acrobatics XP bar
+            /mmoxpbar reset - Reset all settings related to XP bars (hide/show)
+
+Version 2.1.125
+    *Fixed a bug where you could not place blocks on top of certain repair/salvage anvils
+
+    Notes: You won't be able to place blocks on top of stuff that has an interactable component if its setup as an anvil for either Repair or Salvage, for example if you set the vanilla minecraft anvil to Repair, you won't be able to place blocks on top of that. If the repair anvil is still set to iron block then you can now place blocks on it again.
+
+Version 2.1.124
+    Repair/Salvage can now be set to use vanilla blocks that already do something and that vanilla functionality will be disabled by mcMMO (you could use vanilla-anvils instead of iron_blocks for repair now)
+    Added Gold_Nugget to Mining's Bonus_Drops in config.yml (edit your config)
+    Added Piglin to experience.yml combat XP tables with a value of 2.0 (edit your config)
+    Added Hoglin to experience.yml combat XP tables with a value of 4.0 (edit your config)
+    Added Zombified_Piglin & Zombie_Pigman to experience.yml combat XP tables with a value of 3.0 (edit your config)
+
+    For this update either edit experience.yml and config.yml manually or delete them to regenerate, keep in mind config.yml has MySQL settings so don't delete it carelessly.
+
+
+Version 2.1.123
+    Added 'Nether_Gold_Ore' to Mining XP tables in experience.yml with a value of 1300
+    Adept Salvage message will now show the correct minimum level
+    'Weeping_Vines' renamed to 'Weeping_Vines_Plant' in experience.yml (no edits necessary)
+    'Twisted_Vines_Plant' added to Herbalism XP tables in experience.yml with a value of 10
+    Weeping_Vines_Plant and Twisted_Vines_Plant are now flagged as multi-block plants in Herbalism
+
+Version 2.1.122
+    Changed the xp values for Nether_Wart_Block and Warped_Wart_Block from 20 to 1 for Woodcutting
+    Changed the xp values for Nether_Wart_Block and Warped_Wart_Block from 20 to 3 for Herbalism
+    mcMMO now treats Nether_Wart_Block and Warped_Wart_Block as leaves
+    Removed Crimson_Roots and Warped_Roots from Woodcutting XP tables in experience.yml
+    Added Crimson_Roots and Warped_Roots to Herbalism XP tables in experience.yml with a value of 6 XP
+    Fixed some start up bugs for salvage/repair
+
+    You can either edit experience.yml yourself or delete it to regenerate a new one to get the new changes
+
+Version 2.1.121
+    Fixed a netherite related bug that prevented mcMMO from functioning correctly
+
+Version 2.1.120
+    Fixed a bug involving the new netherite equipment
+
+Version 2.1.119
+    1.16 Support
+    Fixed another dupe bug
+    Fixed a bug that can cause blast mining to give out more rewards than intended
+    Blast Mining rewards are now randomized but still influenced by your blast mining rank
+    mcMMO is now aware of turtle shell and treats it appropriately
+    mcMMO is now aware of chainmail armor and treats it appropriately
+    Calculations which change depend on the quality of your tool or armor has had netherrack support coded in
+    All excavation drops that can drop from soul_sand now also drop from soul_soil (edited treasures.yml)
+
+    Added netherite armor/weapons/tools to repair.vanilla.yml
+    Added netherite armor/weapons/tools to salvage.vanilla.yml
+
+    Added 'Bamboo_Sapling' to bonus drops for Herbalism in experience.yml
+    Added 'Ancient_Debris' with a value of 7777 to Mining experience tables in experience.yml
+    Added 'Basalt' with a value of 40 to Mining experience tables in experience.yml
+    Added 'Crimson_Fungus' with a value of 50 to Herbalism experience tables in experience.yml
+    Added 'Warped_Fungus' with a value of 50 to Herbalism experience tables in experience.yml
+    Added 'Warped_Nylium' with a value of 5 to Mining experience tables in experience.yml
+    Added 'Crimson_Nylium' with a value of 5 to Mining experience tables in experience.yml
+    Added 'Crimson_Stem' with a value of 35 to Woodcutting experience tables in experience.yml
+    Added 'Crimson_Roots' with a value of 35 to Woodcutting experience tables in experience.yml
+    Added 'Warped_Stem' with a value of 35 to Woodcutting experience tables in experience.yml
+    Added 'Warped_Roots' with a value of 35 to Woodcutting experience tables in experience.yml
+    Added 'Ancient_Debris' with a value of 200 to Smelting experience tables in experience.yml
+    Added 'Nether_Sprouts' with a value of 10 to Herbalism experience tables in experience.yml
+    Added 'Shroomlight' with a value of 100 to Woodcutting experience tables in experience.yml
+    Added 'Soul_Soil' with a value of 50 to Excavation experience tables in experience.yml
+    Added 'Nether_Wart_Block' with a value of 20 to Woodcutting experience tables in experience.yml
+    Added 'Nether_Wart_Block' with a value of 20 to Herbalism experience tables in experience.yml
+    Added 'Warped_Wart_Block' with a value of 20 to Woodcutting experience tables in experience.yml
+    Added 'Warped_Wart_Block' with a value of 20 to Herbalism experience tables in experience.yml
+    Added 'Weeping_Vines' with a value of 10 to Herbalism experience tables in experience.yml
+
+    Added 'Ancient_Debris' to bonus drops for Mining in config.yml
+    Added 'Netherite_Scrap' to bonus drops for Mining in config.yml
+    Added 'Crimson_Fungus' to bonus drops for Herbalism in config.yml
+    Added 'Warped_Fungus' to bonus drops for Herbalism in config.yml
+    Added 'Warped_Nylium' to bonus drops for Mining in config.yml
+    Added 'Crimson_Nylium' to bonus drops for Mining in config.yml
+    Added 'Crimson_Stem' to bonus drops for Woodcutting in config.yml
+    Added 'Warped_Stem' to bonus drops for Woodcutting in config.yml
+    Added 'Shroomlight' to bonus drops for Woodcutting in config.yml
+
+    NOTES: You will likely need to update repair.vanilla.yml, salvage.vanilla.yml and treasures.yml
+    You can just delete those config files to regenerate them fresh which is much faster if you don't have any custom settings in those files
+    Here are the default configuration files if you wish to compare them to your own servers settings while updating your configs.
+    https://paste.gg/p/anonymous/bf8ba1a24c8c4f188da5f8b8ebfc2b35 (Keep scrolling)
+
+    Netherrack is repaired using netherrack scraps for now, wait for 2.2 for a better version of repair.
+    Netherrack salvages into netherrack scraps for now, wait for 2.2 for a better version of salvage.
+
+    Repairing chainmail/etc will be tackled in 2.2 so don't expect that in this version
+
+
+Version 2.1.118
+    Fixed another dupe bug
+    Blast Mining no longer reduces debris from explosions due to some issues with the Bukkit API
+    Modified locale string 'Mining.Blast.Effect' to remove debris reduction mention
+    Rupture now fires a FakeEntityDamageByEntityEvent before damaging its victims (cancelling it will be ignored)
+
 Version 2.1.117
     Fixed a rare http error when polling Mojang for UUIDs
     Fixed a bug that allowed duping
-
 
 Version 2.1.116
     Fixed directional plants not maintaining their direction when replanted

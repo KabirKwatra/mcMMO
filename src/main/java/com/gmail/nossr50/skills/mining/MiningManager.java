@@ -2,6 +2,7 @@ package com.gmail.nossr50.skills.mining;
 
 import com.gmail.nossr50.config.AdvancedConfig;
 import com.gmail.nossr50.config.Config;
+import com.gmail.nossr50.config.experience.ExperienceConfig;
 import com.gmail.nossr50.datatypes.experience.XPGainReason;
 import com.gmail.nossr50.datatypes.interactions.NotificationType;
 import com.gmail.nossr50.datatypes.player.McMMOPlayer;
@@ -16,12 +17,16 @@ import com.gmail.nossr50.util.player.NotificationManager;
 import com.gmail.nossr50.util.random.RandomChanceUtil;
 import com.gmail.nossr50.util.skills.RankUtils;
 import com.gmail.nossr50.util.skills.SkillUtils;
+import org.apache.commons.lang.math.RandomUtils;
+import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockState;
+import org.bukkit.block.Container;
 import org.bukkit.enchantments.Enchantment;
 import org.bukkit.entity.Player;
 import org.bukkit.entity.TNTPrimed;
+import org.bukkit.event.entity.EntityExplodeEvent;
 import org.bukkit.inventory.ItemStack;
 
 import java.util.ArrayList;
@@ -126,55 +131,86 @@ public class MiningManager extends SkillManager {
      * Handler for explosion drops and XP gain.
      *
      * @param yield The % of blocks to drop
-     * @param blockList The list of blocks to drop
+     * @param event The {@link EntityExplodeEvent}
      */
-    public void blastMiningDropProcessing(float yield, List<Block> blockList) {
+    //TODO: Rewrite this garbage
+    //TODO: Rewrite this garbage
+    //TODO: Rewrite this garbage
+    //TODO: Rewrite this garbage
+    //TODO: Rewrite this garbage
+    //TODO: Rewrite this garbage
+    //TODO: Rewrite this garbage
+    //TODO: Rewrite this garbage
+    //TODO: Rewrite this garbage
+    //TODO: Rewrite this garbage
+    //TODO: Rewrite this garbage
+    //TODO: Rewrite this garbage
+    //TODO: Rewrite this garbage
+    //TODO: Rewrite this garbage
+    //TODO: Rewrite this garbage
+    //TODO: Rewrite this garbage
+    //TODO: Rewrite this garbage
+    //TODO: Rewrite this garbage
+    //TODO: Rewrite this garbage
+    //TODO: Rewrite this garbage
+    //TODO: Rewrite this garbage
+    //TODO: Rewrite this garbage
+    //TODO: Rewrite this garbage
+    //TODO: Rewrite this garbage
+    public void blastMiningDropProcessing(float yield, EntityExplodeEvent event) {
+        //Strip out only stuff that gives mining XP
+
         List<BlockState> ores = new ArrayList<BlockState>();
-        List<BlockState> debris = new ArrayList<BlockState>();
+
+        List<BlockState> notOres = new ArrayList<>();
+        for (Block targetBlock : event.blockList()) {
+            BlockState blockState = targetBlock.getState();
+            //Containers usually have 0 XP unless someone edited their config in a very strange way
+            if (ExperienceConfig.getInstance().getXp(PrimarySkillType.MINING, targetBlock) != 0
+                    && !(targetBlock instanceof Container)
+                    && !mcMMO.getPlaceStore().isTrue(targetBlock)) {
+                if(BlockUtils.isOre(blockState)) {
+                    ores.add(blockState);
+                } else {
+                    notOres.add(blockState);
+                }
+            }
+        }
+
         int xp = 0;
 
         float oreBonus = (float) (getOreBonus() / 100);
         //TODO: Pretty sure something is fucked with debrisReduction stuff
         float debrisReduction = (float) (getDebrisReduction() / 100);
         int dropMultiplier = getDropMultiplier();
-
         float debrisYield = yield - debrisReduction;
 
-        for (Block block : blockList) {
-            BlockState blockState = block.getState();
-
-            if (BlockUtils.isOre(blockState)) {
-                ores.add(blockState);
-            }
-            //Server bug that allows beacons to be duped when yield is set to 0
-            else if(blockState.getType() != Material.BEACON && blockState.getType() != Material.SHULKER_BOX) {
-                debris.add(blockState);
+        //Drop "debris" based on skill modifiers
+        for(BlockState blockState : notOres) {
+            if(RandomUtils.nextFloat() < debrisYield) {
+                Misc.dropItem(Misc.getBlockCenter(blockState), new ItemStack(blockState.getType())); // Initial block that would have been dropped
             }
         }
 
         for (BlockState blockState : ores) {
-            if (Misc.getRandom().nextFloat() < (yield + oreBonus)) {
-                if (!mcMMO.getPlaceStore().isTrue(blockState)) {
-                    xp += Mining.getBlockXp(blockState);
-                }
+            if (RandomUtils.nextFloat() < (yield + oreBonus)) {
+                xp += Mining.getBlockXp(blockState);
 
                 Misc.dropItem(Misc.getBlockCenter(blockState), new ItemStack(blockState.getType())); // Initial block that would have been dropped
 
                 if (!mcMMO.getPlaceStore().isTrue(blockState)) {
                     for (int i = 1; i < dropMultiplier; i++) {
-                        Mining.handleSilkTouchDrops(blockState); // Bonus drops - should drop the block & not the items
+//                        Bukkit.broadcastMessage("Bonus Drop on Ore: "+blockState.getType().toString());
+                        Misc.dropItem(Misc.getBlockCenter(blockState), new ItemStack(blockState.getType())); // Initial block that would have been dropped
                     }
                 }
             }
         }
 
-        if (debrisYield > 0) {
-            for (BlockState blockState : debris) {
-                if (Misc.getRandom().nextFloat() < debrisYield) {
-                    Misc.dropItems(Misc.getBlockCenter(blockState), blockState.getBlock().getDrops());
-                }
-            }
-        }
+        //Replace the event blocklist with the newYield list
+        event.setYield(0F);
+//        event.blockList().clear();
+//        event.blockList().addAll(notOres);
 
         applyXpGain(xp, XPGainReason.PVE);
     }
@@ -238,7 +274,21 @@ public class MiningManager extends SkillManager {
      * @return the Blast Mining tier
      */
     public int getDropMultiplier() {
-        return getDropMultiplier(getBlastMiningTier());
+        switch(getBlastMiningTier()) {
+            case 8:
+            case 7:
+                return 3;
+            case 6:
+            case 5:
+            case 4:
+            case 3:
+                return 2;
+            case 2:
+            case 1:
+                return 1;
+            default:
+                return 0;
+        }
     }
 
     /**

@@ -40,9 +40,11 @@ public class WorldBlacklist {
     }
 
     private void loadBlacklist(File blackListFile) {
+        FileReader fileReader = null;
+        BufferedReader bufferedReader = null;
         try {
-            FileReader fileReader = new FileReader(blackListFile);
-            BufferedReader bufferedReader = new BufferedReader(fileReader);
+            fileReader = new FileReader(blackListFile);
+            bufferedReader = new BufferedReader(fileReader);
 
             String currentLine;
 
@@ -55,17 +57,26 @@ public class WorldBlacklist {
                     blacklist.add(currentLine);
             }
 
+
+        } catch (IOException e) {
+            e.printStackTrace();
+        } finally {
             //Close readers
-            bufferedReader.close();
-            fileReader.close();
-        } catch (FileNotFoundException e) {
-            e.printStackTrace();
-        } catch (IOException e)
-        {
-            e.printStackTrace();
+            closeRead(bufferedReader);
+            closeRead(fileReader);
         }
 
         plugin.getLogger().info(blacklist.size()+" entries in mcMMO World Blacklist");
+    }
+
+    private void closeRead(Reader reader) {
+        if(reader != null) {
+            try {
+                reader.close();
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }
     }
 
     public static boolean isWorldBlacklisted(World world)
