@@ -367,6 +367,7 @@ Experience_Values:
         Lily_Of_The_Valley: 150
         Wither_Rose: 500
     Mining:
+        Crying_Obsidian: 3000
         Chain: 100
         Blackstone: 55
         Warped_Nylium: 5
@@ -383,11 +384,14 @@ Experience_Values:
         Diamond_Ore: 2400
         Emerald_Ore: 1000
         End_Bricks: 50
+        Chiseled_Nether_Bricks: 50
+        Cracked_Nether_Bricks: 50
         Nether_Bricks: 50
         End_Stone: 15
         Glowstone: 15
         Gold_Ore: 1300
         Nether_Gold_Ore: 1300
+        Gilded_Blackstone: 1300
         Terracotta: 30
         Iron_Ore: 900
         Lapis_Ore: 800
