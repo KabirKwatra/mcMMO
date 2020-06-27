@@ -1,3 +1,14 @@
+Version 2.1.130
+    Fixed a bug that prevented Repair from working on the new Netherite weapons/armors
+    Fixed a bug where Netherite gear used Gold Ingots to repair instead of Netherite Scraps (by default)
+    mcMMO will now run a script to fix a misspelling of netherite in repair/salvage configs (script only runs once and then never again)
+    mcMMO will produce a fake PlayerItemDamageEvent before damaging axes in Tree Feller execution
+
+
+    NOTES:
+    Early versions of 1.16 support had Netherite misspelled, the script I added executes before loading those config files to fix the spelling mistakes if it finds any
+    If you are still having issues with Repair/Salvage, delete the repair and salvage .yml files in /plugins/mcMMO and restart the server
+
 Version 2.1.129
     Added new subcommand /mmoxpbar disable - Hides all mcMMO XP bars
     New locale string 'Commands.XPBar.DisableAll'
