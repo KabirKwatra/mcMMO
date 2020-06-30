@@ -1,6 +1,7 @@
 package com.gmail.nossr50.config.skills.salvage;
 
 import com.gmail.nossr50.config.ConfigLoader;
+import com.gmail.nossr50.datatypes.database.UpgradeType;
 import com.gmail.nossr50.datatypes.skills.ItemType;
 import com.gmail.nossr50.datatypes.skills.MaterialType;
 import com.gmail.nossr50.mcMMO;
@@ -12,6 +13,7 @@ import org.bukkit.Material;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.inventory.ItemStack;
 
+import java.io.IOException;
 import java.util.*;
 
 public class SalvageConfig extends ConfigLoader {
@@ -35,6 +37,25 @@ public class SalvageConfig extends ConfigLoader {
 
         ConfigurationSection section = config.getConfigurationSection("Salvageables");
         Set<String> keys = section.getKeys(false);
+
+        //Original version of 1.16 support had maximum quantities that were bad, this fixes it
+
+        if(mcMMO.getUpgradeManager().shouldUpgrade(UpgradeType.FIX_NETHERITE_SALVAGE_QUANTITIES)) {
+            mcMMO.p.getLogger().info("Fixing incorrect Salvage quantities on Netherite gear, this will only run once...");
+            for(String namespacedkey : mcMMO.getMaterialMapStore().getNetheriteArmor()) {
+                config.set("Salvageables." + namespacedkey.toUpperCase() + ".MaximumQuantity", 4);
+            }
+
+            try {
+                config.save(getFile());
+                mcMMO.getUpgradeManager().setUpgradeCompleted(UpgradeType.FIX_NETHERITE_SALVAGE_QUANTITIES);
+                mcMMO.p.getLogger().info("Fixed incorrect Salvage quantities for Netherite gear!");
+            } catch (IOException e) {
+                mcMMO.p.getLogger().info("Unable to fix Salvage config, please delete the salvage yml file to generate a new one.");
+                e.printStackTrace();
+            }
+        }
+
 
         for (String key : keys) {
             // Validate all the things!
@@ -76,7 +97,7 @@ public class SalvageConfig extends ConfigLoader {
                 else if (ItemUtils.isDiamondArmor(salvageItem) || ItemUtils.isDiamondTool(salvageItem)) {
                     salvageMaterialType = MaterialType.DIAMOND;
                 } else if (ItemUtils.isNetheriteTool(salvageItem) || ItemUtils.isNetheriteArmor(salvageItem)) {
-                    salvageMaterialType = MaterialType.NETHER;
+                    salvageMaterialType = MaterialType.NETHERITE;
                 }
             }
             else {
@@ -131,7 +152,7 @@ public class SalvageConfig extends ConfigLoader {
             }
 
             // Maximum Quantity
-            int maximumQuantity = (itemMaterial != null ? SkillUtils.getRepairAndSalvageQuantities(itemMaterial, salvageMaterial) : config.getInt("Salvageables." + key + ".MaximumQuantity", 2));
+            int maximumQuantity = (itemMaterial != null ? SkillUtils.getRepairAndSalvageQuantities(itemMaterial, salvageMaterial) : config.getInt("Salvageables." + key + ".MaximumQuantity", 1));
 
             if (maximumQuantity <= 0 && itemMaterial != null) {
                 maximumQuantity = config.getInt("Salvageables." + key + ".MaximumQuantity", 1);
