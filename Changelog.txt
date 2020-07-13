@@ -1,3 +1,31 @@
+Version 2.1.134
+    Smelting furnaces are now more flexible about who they consider their owner (see notes)
+    Smelting now has a Bonus Drops section in config.yml
+    Smelting now only doubles smelting results for items which have bonus drop entries in config.yml
+    Minor code cleanup
+    Changed the UUID updater task to not catastrophically fail when requests failed
+    Fixed a bug where players could set each other on fire when partied or when PVP was disabled
+    Fixed a NPE that could happen with thrown potions
+    Fixed a potential NPE when damaging player armor with Axes
+    Fixed a potential NPE when damaging a player with Blast Mining
+    Fixed a potential NPE when checking tools related to Super Abilities
+    Fixed a potential NPE when checking the Chimaera Wing
+    Fixed a potential NPE when creating party member lists
+    Fixed a potential NPE when fishing
+    Fixed a potential NPE when players right click blocks
+    Fixed a locale mistake in locale hu_HU
+    Fixed a locale mistake in locale ru
+
+    NOTES:
+    Furnaces give XP to their owner while smelting
+    You become the owner of a Furnace by doing one of the following
+    1) Opening an empty furnace
+    2) Interacting with a furnace
+
+    It used to be that Furnaces would assign an owner and that would be their owner until the server shutdown, now owners will change based on who last had their hands on the furnace.
+
+    You won't become the owner if you are not allowed to view the inventory of a furnace
+
 Version 2.1.133
     A fix for an 'array out of bounds' error related to players clicking outside the inventory windows has been fixed
     French locale has been updated (thanks Elikill58)
