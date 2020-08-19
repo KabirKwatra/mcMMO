@@ -1,16 +1,21 @@
 package com.gmail.nossr50.util;
 
+import com.gmail.nossr50.config.AdvancedConfig;
 import com.gmail.nossr50.config.Config;
 import com.gmail.nossr50.config.party.ItemWeightConfig;
 import com.gmail.nossr50.locale.LocaleLoader;
 import com.gmail.nossr50.mcMMO;
 import org.bukkit.ChatColor;
 import org.bukkit.Material;
+import org.bukkit.enchantments.Enchantment;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.FurnaceRecipe;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.Recipe;
 import org.bukkit.inventory.meta.ItemMeta;
+import org.jetbrains.annotations.NotNull;
+
+import java.util.List;
 
 public final class ItemUtils {
     private ItemUtils() {}
@@ -25,7 +30,7 @@ public final class ItemUtils {
         return mcMMO.getMaterialMapStore().isBow(item.getType().getKey().getKey());
     }
 
-    public static boolean hasItemInEitherHand(Player player, Material material) {
+    public static boolean hasItemInEitherHand(@NotNull Player player, Material material) {
         return player.getInventory().getItemInMainHand().getType() == material || player.getInventory().getItemInOffHand().getType() == material;
     }
 
@@ -35,7 +40,7 @@ public final class ItemUtils {
      * @param item Item to check
      * @return true if the item is a sword, false otherwise
      */
-    public static boolean isSword(ItemStack item) {
+    public static boolean isSword(@NotNull ItemStack item) {
         return mcMMO.getMaterialMapStore().isSword(item.getType().getKey().getKey());
     }
 
@@ -45,7 +50,7 @@ public final class ItemUtils {
      * @param item Item to check
      * @return true if the item is a hoe, false otherwise
      */
-    public static boolean isHoe(ItemStack item) {
+    public static boolean isHoe(@NotNull ItemStack item) {
         return mcMMO.getMaterialMapStore().isHoe(item.getType().getKey().getKey());
     }
 
@@ -55,7 +60,7 @@ public final class ItemUtils {
      * @param item Item to check
      * @return true if the item is a shovel, false otherwise
      */
-    public static boolean isShovel(ItemStack item) {
+    public static boolean isShovel(@NotNull ItemStack item) {
         return mcMMO.getMaterialMapStore().isShovel(item.getType().getKey().getKey());
     }
 
@@ -65,7 +70,7 @@ public final class ItemUtils {
      * @param item Item to check
      * @return true if the item is an axe, false otherwise
      */
-    public static boolean isAxe(ItemStack item) {
+    public static boolean isAxe(@NotNull ItemStack item) {
         return mcMMO.getMaterialMapStore().isAxe(item.getType().getKey().getKey());
     }
 
@@ -75,7 +80,7 @@ public final class ItemUtils {
      * @param item Item to check
      * @return true if the item is a pickaxe, false otherwise
      */
-    public static boolean isPickaxe(ItemStack item) {
+    public static boolean isPickaxe(@NotNull ItemStack item) {
         return mcMMO.getMaterialMapStore().isPickAxe(item.getType().getKey().getKey());
     }
 
@@ -478,5 +483,55 @@ public final class ItemUtils {
             return false;
 
         return itemMeta.hasDisplayName() && itemMeta.getDisplayName().equals(ChatColor.GOLD + LocaleLoader.getString("Item.ChimaeraWing.Name"));
+    }
+
+//    public static void addAbilityLore(@NotNull ItemStack itemStack) {
+//        ItemMeta itemMeta = itemStack.getItemMeta();
+//        List<String> itemLore = new ArrayList<>();
+//
+//        if(itemMeta == null)
+//            return;
+//
+//        if (itemMeta.hasLore()) {
+//            itemLore = itemMeta.getLore();
+//        }
+//
+//        itemLore.add("mcMMO Ability Tool");
+//
+//        itemMeta.setLore(itemLore);
+//        itemStack.setItemMeta(itemMeta);
+//    }
+
+    public static void removeAbilityLore(@NotNull ItemStack itemStack) {
+        ItemMeta itemMeta = itemStack.getItemMeta();
+
+        if(itemMeta == null)
+            return;
+
+        if (itemMeta.hasLore()) {
+            List<String> itemLore = itemMeta.getLore();
+
+            if(itemLore == null)
+                return;
+
+            if (itemLore.remove("mcMMO Ability Tool")) {
+                itemMeta.setLore(itemLore);
+                itemStack.setItemMeta(itemMeta);
+            }
+        }
+    }
+
+    public static void addDigSpeedToItem(@NotNull ItemStack itemStack, int existingEnchantLevel) {
+        ItemMeta itemMeta = itemStack.getItemMeta();
+
+        if(itemMeta == null)
+            return;
+
+        itemMeta.addEnchant(Enchantment.DIG_SPEED, existingEnchantLevel + AdvancedConfig.getInstance().getEnchantBuff(), true);
+        itemStack.setItemMeta(itemMeta);
+    }
+
+    public static boolean canBeSuperAbilityDigBoosted(@NotNull ItemStack itemStack) {
+        return isShovel(itemStack) || isPickaxe(itemStack);
     }
 }
