@@ -72,7 +72,22 @@ public class InventoryListener implements Listener {
                     return;
                 }
 
+
+                boolean debugMode = player.isOnline() && UserManager.getPlayer(player).isDebugMode();
+
+                if(debugMode) {
+                    player.sendMessage("FURNACE FUEL EFFICIENCY DEBUG REPORT");
+                    player.sendMessage("Furnace - "+furnace.hashCode());
+                    player.sendMessage("Furnace Type: "+furnaceBlock.getType().toString());
+                    player.sendMessage("Burn Length before Fuel Efficiency is applied - "+event.getBurnTime());
+                }
+
                 event.setBurnTime(UserManager.getPlayer(player).getSmeltingManager().fuelEfficiency(event.getBurnTime()));
+
+                if(debugMode) {
+                    player.sendMessage("New Furnace Burn Length (after applying fuel efficiency) "+event.getBurnTime());
+                    player.sendMessage("");
+                }
             }
         }
 
