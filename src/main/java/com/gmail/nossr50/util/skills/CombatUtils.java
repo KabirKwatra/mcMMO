@@ -32,6 +32,7 @@ import org.bukkit.event.entity.EntityDamageEvent.DamageCause;
 import org.bukkit.event.entity.EntityDamageEvent.DamageModifier;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.metadata.MetadataValue;
+import org.bukkit.potion.PotionEffectType;
 import org.bukkit.projectiles.ProjectileSource;
 
 import java.util.EnumMap;
@@ -41,6 +42,23 @@ import java.util.Map;
 
 public final class CombatUtils {
     private CombatUtils() {}
+
+    //Likely.. because who knows what plugins are throwing around
+    public static boolean isDamageLikelyFromNormalCombat(DamageCause damageCause) {
+        switch (damageCause) {
+            case ENTITY_ATTACK:
+            case ENTITY_SWEEP_ATTACK:
+            case PROJECTILE:
+                return true;
+            default:
+                return false;
+        }
+    }
+
+    public static boolean hasWeakenedDamage(LivingEntity livingEntity) {
+        return livingEntity.hasPotionEffect(PotionEffectType.WEAKNESS);
+    }
+
 
     private static void processSwordCombat(LivingEntity target, Player player, EntityDamageByEntityEvent event) {
         if (event.getCause() == DamageCause.THORNS) {
@@ -186,8 +204,7 @@ public final class CombatUtils {
             mcMMOPlayer.checkAbilityActivation(PrimarySkillType.UNARMED);
         }
 
-        //Only execute bonuses if the player is not spamming
-        if (unarmedManager.canUseIronArm()) {
+        if (unarmedManager.canUseSteelArm()) {
             finalDamage+=(unarmedManager.calculateSteelArmStyleDamage() * mcMMOPlayer.getAttackStrength());
         }
 

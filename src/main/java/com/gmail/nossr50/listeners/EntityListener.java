@@ -5,6 +5,7 @@ import com.gmail.nossr50.config.Config;
 import com.gmail.nossr50.config.WorldBlacklist;
 import com.gmail.nossr50.config.experience.ExperienceConfig;
 import com.gmail.nossr50.datatypes.player.McMMOPlayer;
+import com.gmail.nossr50.datatypes.player.PlayerProfile;
 import com.gmail.nossr50.datatypes.skills.SubSkillType;
 import com.gmail.nossr50.datatypes.skills.subskills.interfaces.InteractType;
 import com.gmail.nossr50.events.fake.FakeEntityDamageByEntityEvent;
@@ -328,12 +329,6 @@ public class EntityListener implements Listener {
         if (event.getEntity() instanceof ArmorStand) {
             return;
         }
-        
-        if (event.getDamager().hasMetadata(mcMMO.funfettiMetadataKey))
-        {
-            event.setCancelled(true);
-            return;
-        }
 
         if (Misc.isNPCEntityExcludingVillagers(defender) || !defender.isValid() || !(defender instanceof LivingEntity)) {
             return;
@@ -411,7 +406,6 @@ public class EntityListener implements Listener {
             }
         }
 
-
         /*
          * This was put here to solve a plugin conflict with a mod called Project Korra
          * Project Korra sends out a damage event with exactly 0 damage
@@ -421,8 +415,10 @@ public class EntityListener implements Listener {
          * Surprising this kind of thing
          *
          */
-        if(damage <= 0) {
-            return;
+        if(mcMMO.isProjectKorraEnabled()) {
+            if(event.getFinalDamage() == 0) {
+                return;
+            }
         }
 
         CombatUtils.processCombatAttack(event, attacker, target);
