@@ -1,6 +1,7 @@
 package com.gmail.nossr50.util.compat.layers.persistentdata;
 
 import com.gmail.nossr50.api.exceptions.IncompleteNamespacedKeyRegister;
+import com.gmail.nossr50.config.PersistentDataConfig;
 import com.gmail.nossr50.mcMMO;
 import org.bukkit.Bukkit;
 import org.bukkit.NamespacedKey;
@@ -21,10 +22,12 @@ import java.util.UUID;
 public class SpigotPersistentDataLayer_1_14 extends AbstractPersistentDataLayer {
 
     private final @NotNull EnumMap<MobMetaFlagType, NamespacedKey> mobFlagKeyMap;
+    private final @NotNull SpigotPersistentDataLayer_1_13 transientLayer;
 
     public SpigotPersistentDataLayer_1_14() {
         mobFlagKeyMap = new EnumMap<>(MobMetaFlagType.class);
         initMobFlagKeyMap();
+        transientLayer = new SpigotPersistentDataLayer_1_13(); //For disabled persistent types
     }
 
     @Override
@@ -67,13 +70,17 @@ public class SpigotPersistentDataLayer_1_14 extends AbstractPersistentDataLayer 
 
     @Override
     public boolean hasMobFlag(@NotNull MobMetaFlagType flag, @NotNull LivingEntity livingEntity) {
-        return livingEntity.getPersistentDataContainer().has(mobFlagKeyMap.get(flag), PersistentDataType.BYTE);
+        if(PersistentDataConfig.getInstance().isMobPersistent(flag)) {
+            return livingEntity.getPersistentDataContainer().has(mobFlagKeyMap.get(flag), PersistentDataType.BYTE);
+        } else {
+            return transientLayer.hasMobFlag(flag, livingEntity);
+        }
     }
 
     @Override
     public boolean hasMobFlags(@NotNull LivingEntity livingEntity) {
-        for(NamespacedKey currentKey : mobFlagKeyMap.values()) {
-            if(livingEntity.getPersistentDataContainer().has(currentKey, PersistentDataType.BYTE)) {
+        for(MobMetaFlagType currentFlag : MobMetaFlagType.values()) {
+            if(hasMobFlag(currentFlag, livingEntity)) {
                 return true;
             }
         }
@@ -92,17 +99,25 @@ public class SpigotPersistentDataLayer_1_14 extends AbstractPersistentDataLayer 
 
     @Override
     public void flagMetadata(@NotNull MobMetaFlagType flag, @NotNull LivingEntity livingEntity) {
-        if(!hasMobFlag(flag, livingEntity)) {
-            PersistentDataContainer persistentDataContainer = livingEntity.getPersistentDataContainer();
-            persistentDataContainer.set(mobFlagKeyMap.get(flag), PersistentDataType.BYTE, SIMPLE_FLAG_VALUE);
+        if(PersistentDataConfig.getInstance().isMobPersistent(flag)) {
+            if(!hasMobFlag(flag, livingEntity)) {
+                PersistentDataContainer persistentDataContainer = livingEntity.getPersistentDataContainer();
+                persistentDataContainer.set(mobFlagKeyMap.get(flag), PersistentDataType.BYTE, SIMPLE_FLAG_VALUE);
+            }
+        } else {
+            transientLayer.flagMetadata(flag, livingEntity);
         }
     }
 
     @Override
     public void removeMobFlag(@NotNull MobMetaFlagType flag, @NotNull LivingEntity livingEntity) {
-        if(hasMobFlag(flag, livingEntity)) {
-            PersistentDataContainer persistentDataContainer = livingEntity.getPersistentDataContainer();
-            persistentDataContainer.remove(mobFlagKeyMap.get(flag));
+        if(PersistentDataConfig.getInstance().isMobPersistent(flag)) {
+            if(hasMobFlag(flag, livingEntity)) {
+                PersistentDataContainer persistentDataContainer = livingEntity.getPersistentDataContainer();
+                persistentDataContainer.remove(mobFlagKeyMap.get(flag));
+            }
+        } else {
+            transientLayer.removeMobFlag(flag, livingEntity);
         }
     }
 
