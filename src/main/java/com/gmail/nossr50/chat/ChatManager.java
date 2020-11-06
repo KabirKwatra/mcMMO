@@ -70,10 +70,10 @@ public class ChatManager {
     private void processPlayerMessage(@NotNull McMMOPlayer mmoPlayer, @NotNull ChatChannel chatChannel, @NotNull String rawMessage, boolean isAsync) {
         switch (chatChannel) {
             case ADMIN:
-                adminChatMailer.processChatMessage(mmoPlayer.getAdminAuthor(), rawMessage, isAsync, Permissions.colorChat(mmoPlayer.getPlayer()));
+                adminChatMailer.processChatMessage(mmoPlayer.getPlayerAuthor(), rawMessage, isAsync, Permissions.colorChat(mmoPlayer.getPlayer()));
                 break;
             case PARTY:
-                partyChatMailer.processChatMessage(mmoPlayer.getPartyAuthor(), rawMessage, mmoPlayer.getParty(), isAsync, Permissions.colorChat(mmoPlayer.getPlayer()), isPartyLeader(mmoPlayer));
+                partyChatMailer.processChatMessage(mmoPlayer.getPlayerAuthor(), rawMessage, mmoPlayer.getParty(), isAsync, Permissions.colorChat(mmoPlayer.getPlayer()), isPartyLeader(mmoPlayer));
                 break;
             case PARTY_OFFICER:
             case NONE:

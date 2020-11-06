@@ -34,11 +34,6 @@ public abstract class AbstractChatMessage implements ChatMessage {
     }
 
     @Override
-    public @NotNull String getAuthorDisplayName() {
-        return author.getAuthoredName();
-    }
-
-    @Override
     public @NotNull Audience getAudience() {
         return audience;
     }
