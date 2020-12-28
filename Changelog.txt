@@ -1,3 +1,13 @@
+Version 2.1.164
+    New exploit fix setting, when disabled it will allow combat interactions with "NPC" entities from plugins like Citizens
+    ExploitFix.PreventPluginNPCInteraction Added to experience.yml
+
+    NOTES:
+    When talking about NPCs in the below notes, I am referring to "Fake" Players used in plugins such as Citizens, not Villagers from Vanilla Minecraft or anything labeled NPC in another plugin which does not constitute a "Fake Player"
+    Historically mcMMO has checked an entity for being a Fake-Player-NPC and backed out of any interaction, this was originally done because of Fake-Player-NPCs that were meant to be invincible/etc and not give XP
+    However nowadays what a Fake-Player-NPC is used for is pretty loose, mcMMO only has definitions for some NPCs (such as from Citizens) it doesn't know about most Fake-Player-NPCs in most plugins unless they identify themselves in a similar way to the predefined parameters
+    Leave this new exploit fix setting on true unless you understand the implications
+
 Version 2.1.163
     Fixed the translate URL pointing to the wrong place (thanks chew)
     Fixed a bug where FlatFile databases would always attempt a UUID conversion task every save operation (every 10 minutes) causing console spam
@@ -5,6 +15,7 @@ Version 2.1.163
     COTW Summoned entities are now removed when the chunk they are in is unloaded (prevents some exploits)
 
     NOTES:
+    Seems I skipped releasing 2.1.162, not a big deal though as you should be using this version instead!
     I often test in SQL environments so I missed this bug, reminder to come bother me on discord if you find any annoying bugs!
     Also work on T&C is going great lately, I feel great. Perhaps my depression is getting better!
 
