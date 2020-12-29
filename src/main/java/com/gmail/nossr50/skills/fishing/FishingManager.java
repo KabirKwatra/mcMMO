@@ -380,7 +380,7 @@ public class FishingManager extends SkillManager {
      *
      * @param fishingCatch The {@link Item} initially caught
      */
-    public void handleFishing(@NotNull Item fishingCatch) {
+    public void processFishing(@NotNull Item fishingCatch) {
         this.fishingCatch = fishingCatch;
         int fishXp = ExperienceConfig.getInstance().getXp(PrimarySkillType.FISHING, fishingCatch.getItemStack().getType());
         int treasureXp = 0;
@@ -478,7 +478,7 @@ public class FishingManager extends SkillManager {
         Collections.shuffle(enchantmentWrappers, Misc.getRandom());
 
         int randomIndex = Misc.getRandom().nextInt(enchantmentWrappers.size());
-        return  enchantmentWrappers.get(randomIndex+1);
+        return enchantmentWrappers.get(randomIndex);
     }
 
     /**

@@ -419,7 +419,7 @@ public class PlayerListener implements Listener {
                         }
                     }
 
-                    fishingManager.handleFishing((Item) caught);
+                    fishingManager.processFishing((Item) caught);
                     fishingManager.setFishingTarget();
                 }
                 return;
@@ -616,8 +616,8 @@ public class PlayerListener implements Listener {
         if(clickedBlockType == Repair.anvilMaterial || clickedBlockType == Salvage.anvilMaterial) {
             event.setUseItemInHand(Event.Result.ALLOW);
 
-            if(mcMMO.getMaterialMapStore().isToolActivationBlackListed(clickedBlockType)) {
-                    event.setUseInteractedBlock(Event.Result.DENY);
+            if(!event.getPlayer().isSneaking() && mcMMO.getMaterialMapStore().isToolActivationBlackListed(clickedBlockType)) {
+                event.setUseInteractedBlock(Event.Result.DENY);
             }
         }
 
