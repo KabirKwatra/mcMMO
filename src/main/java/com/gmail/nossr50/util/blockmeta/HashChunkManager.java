@@ -1,6 +1,5 @@
 package com.gmail.nossr50.util.blockmeta;
 
-import com.gmail.nossr50.mcMMO;
 import org.bukkit.Bukkit;
 import org.bukkit.World;
 import org.bukkit.block.Block;
@@ -8,13 +7,16 @@ import org.bukkit.block.BlockState;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import java.io.*;
+import java.io.DataInputStream;
+import java.io.DataOutputStream;
+import java.io.File;
+import java.io.IOException;
 import java.util.*;
 
 public class HashChunkManager implements ChunkManager {
-    private final @NotNull HashMap<CoordinateKey, McMMOSimpleRegionFile> regionMap = new HashMap<>(); // Tracks active regions
-    private final @NotNull HashMap<CoordinateKey, HashSet<CoordinateKey>> chunkUsageMap = new HashMap<>(); // Tracks active chunks by region
-    private final @NotNull HashMap<CoordinateKey, ChunkStore> chunkMap = new HashMap<>(); // Tracks active chunks
+    private final HashMap<CoordinateKey, McMMOSimpleRegionFile> regionMap = new HashMap<>(); // Tracks active regions
+    private final HashMap<CoordinateKey, HashSet<CoordinateKey>> chunkUsageMap = new HashMap<>(); // Tracks active chunks by region
+    private final HashMap<CoordinateKey, ChunkStore> chunkMap = new HashMap<>(); // Tracks active chunks
 
     @Override
     public synchronized void closeAll() {
@@ -23,7 +25,10 @@ public class HashChunkManager implements ChunkManager {
         {
             if (!chunkStore.isDirty())
                 continue;
-            writeChunkStore(Bukkit.getWorld(chunkStore.getWorldId()), chunkStore);
+            World world = Bukkit.getWorld(chunkStore.getWorldId());
+            if (world == null)
+                continue; // Oh well
+            writeChunkStore(world, chunkStore);
         }
         // Clear in memory chunks
         chunkMap.clear();
@@ -33,9 +38,9 @@ public class HashChunkManager implements ChunkManager {
             rf.close();
         regionMap.clear();
     }
-
+    
     private synchronized @Nullable ChunkStore readChunkStore(@NotNull World world, int cx, int cz) throws IOException {
-        McMMOSimpleRegionFile rf = getSimpleRegionFile(world, cx, cz, false);
+        McMMOSimpleRegionFile rf = getReadableSimpleRegionFile(world, cx, cz);
         if (rf == null)
             return null; // If there is no region file, there can't be a chunk
         try (DataInputStream in = rf.getInputStream(cx, cz)) { // Get input stream for chunk
@@ -49,7 +54,7 @@ public class HashChunkManager implements ChunkManager {
         if (!data.isDirty())
             return; // Don't save unchanged data
         try {
-            McMMOSimpleRegionFile rf = getSimpleRegionFile(world, data.getChunkX(), data.getChunkZ(), true);
+            McMMOSimpleRegionFile rf = getWriteableSimpleRegionFile(world, data.getChunkX(), data.getChunkZ());
             try (DataOutputStream out = rf.getOutputStream(data.getChunkX(), data.getChunkZ())) {
                 BitSetChunkStore.Serialization.writeChunkStore(out, data);
             }
@@ -60,22 +65,34 @@ public class HashChunkManager implements ChunkManager {
         }
     }
 
-    private synchronized @Nullable McMMOSimpleRegionFile getSimpleRegionFile(World world, int cx, int cz, boolean createIfAbsent) {
+    private synchronized @NotNull McMMOSimpleRegionFile getWriteableSimpleRegionFile(@NotNull World world, int cx, int cz) {
         CoordinateKey regionKey = toRegionKey(world.getUID(), cx, cz);
 
         return regionMap.computeIfAbsent(regionKey, k -> {
-            File worldRegionsDirectory = new File(world.getWorldFolder(), "mcmmo_regions");
-            if (!createIfAbsent && !worldRegionsDirectory.isDirectory())
-                return null; // Don't create the directory on read-only operations
-            worldRegionsDirectory.mkdirs(); // Ensure directory exists
-            File regionFile = new File(worldRegionsDirectory, "mcmmo_" + regionKey.x + "_" + regionKey.z + "_.mcm");
-            if (!createIfAbsent && !regionFile.exists())
+            File regionFile = getRegionFile(world, regionKey);
+            regionFile.getParentFile().mkdirs();
+            return new McMMOSimpleRegionFile(regionFile, regionKey.x, regionKey.z);
+        });
+    }
+
+    private synchronized @Nullable McMMOSimpleRegionFile getReadableSimpleRegionFile(@NotNull World world, int cx, int cz) {
+        CoordinateKey regionKey = toRegionKey(world.getUID(), cx, cz);
+
+        return regionMap.computeIfAbsent(regionKey, k -> {
+            File regionFile = getRegionFile(world, regionKey);
+            if (!regionFile.exists())
                 return null; // Don't create the file on read-only operations
             return new McMMOSimpleRegionFile(regionFile, regionKey.x, regionKey.z);
         });
     }
 
-    private @Nullable ChunkStore loadChunk(int cx, int cz, World world) {
+    private @NotNull File getRegionFile(@NotNull World world, @NotNull CoordinateKey regionKey) {
+        if (world.getUID() != regionKey.worldID)
+            throw new IllegalArgumentException();
+        return new File(new File(world.getWorldFolder(), "mcmmo_regions"), "mcmmo_" + regionKey.x + "_" + regionKey.z + "_.mcm");
+    }
+
+    private @Nullable ChunkStore loadChunk(int cx, int cz, @NotNull World world) {
         try {
             return readChunkStore(world, cx, cz);
         }
@@ -104,56 +121,12 @@ public class HashChunkManager implements ChunkManager {
     }
 
     @Override
-    public synchronized void saveChunk(int cx, int cz, @Nullable World world) {
-        if (world == null)
-            return;
-
-        CoordinateKey chunkKey = toChunkKey(world.getUID(), cx, cz);
-
-        ChunkStore out = chunkMap.get(chunkKey);
-
-        if (out == null)
-            return;
-
-        if (!out.isDirty())
-            return;
-
-        writeChunkStore(world, out);
-    }
-
-    @Override
-    public synchronized void chunkUnloaded(int cx, int cz, @Nullable World world) {
-        if (world == null)
-            return;
-
+    public synchronized void chunkUnloaded(int cx, int cz, @NotNull World world) {
         unloadChunk(cx, cz, world);
     }
 
     @Override
-    public synchronized void saveWorld(@Nullable World world) {
-        if (world == null)
-            return;
-
-        UUID wID = world.getUID();
-
-        // Save all teh chunks
-        for (ChunkStore chunkStore : chunkMap.values()) {
-            if (!chunkStore.isDirty())
-                continue;
-            if (!wID.equals(chunkStore.getWorldId()))
-                continue;
-            try {
-                writeChunkStore(world, chunkStore);
-            }
-            catch (Exception ignore) { }
-        }
-    }
-
-    @Override
-    public synchronized void unloadWorld(@Nullable World world) {
-        if (world == null)
-            return;
-
+    public synchronized void unloadWorld(@NotNull World world) {
         UUID wID = world.getUID();
 
         // Save and remove all the chunks
@@ -179,18 +152,7 @@ public class HashChunkManager implements ChunkManager {
         }
     }
 
-    @Override
-    public synchronized void saveAll() {
-        for (World world : mcMMO.p.getServer().getWorlds()) {
-            saveWorld(world);
-        }
-    }
-
-    @Override
-    public synchronized boolean isTrue(int x, int y, int z, @Nullable World world) {
-        if (world == null)
-            return false;
-
+    private synchronized boolean isTrue(int x, int y, int z, @NotNull World world) {
         CoordinateKey chunkKey = blockCoordinateToChunkKey(world.getUID(), x, y, z);
 
         // Get chunk, load from file if necessary
@@ -216,67 +178,36 @@ public class HashChunkManager implements ChunkManager {
     }
 
     @Override
-    public synchronized boolean isTrue(@Nullable Block block) {
-        if (block == null)
-            return false;
-
+    public synchronized boolean isTrue(@NotNull Block block) {
         return isTrue(block.getX(), block.getY(), block.getZ(), block.getWorld());
     }
 
     @Override
-    public synchronized boolean isTrue(@Nullable BlockState blockState) {
-        if (blockState == null)
-            return false;
-
+    public synchronized boolean isTrue(@NotNull BlockState blockState) {
         return isTrue(blockState.getX(), blockState.getY(), blockState.getZ(), blockState.getWorld());
     }
 
     @Override
-    public synchronized void setTrue(int x, int y, int z, @Nullable World world) {
-        set(x, y, z, world, true);
+    public synchronized void setTrue(@NotNull Block block) {
+        set(block.getX(), block.getY(), block.getZ(), block.getWorld(), true);
     }
 
     @Override
-    public synchronized void setTrue(@Nullable Block block) {
-        if (block == null)
-            return;
-
-        setTrue(block.getX(), block.getY(), block.getZ(), block.getWorld());
+    public synchronized void setTrue(@NotNull BlockState blockState) {
+        set(blockState.getX(), blockState.getY(), blockState.getZ(), blockState.getWorld(), true);
     }
 
     @Override
-    public synchronized void setTrue(@Nullable BlockState blockState) {
-        if (blockState == null)
-            return;
-
-        setTrue(blockState.getX(), blockState.getY(), blockState.getZ(), blockState.getWorld());
+    public synchronized void setFalse(@NotNull Block block) {
+        set(block.getX(), block.getY(), block.getZ(), block.getWorld(), false);
     }
 
     @Override
-    public synchronized void setFalse(int x, int y, int z, @Nullable World world) {
-        set(x, y, z, world, false);
+    public synchronized void setFalse(@NotNull BlockState blockState) {
+        set(blockState.getX(), blockState.getY(), blockState.getZ(), blockState.getWorld(), false);
     }
 
-    @Override
-    public synchronized void setFalse(@Nullable Block block) {
-        if (block == null)
-            return;
-
-        setFalse(block.getX(), block.getY(), block.getZ(), block.getWorld());
-    }
-
-    @Override
-    public synchronized void setFalse(@Nullable BlockState blockState) {
-        if (blockState == null)
-            return;
-
-        setFalse(blockState.getX(), blockState.getY(), blockState.getZ(), blockState.getWorld());
-    }
-
-    public synchronized void set(int x, int y, int z, @Nullable World world, boolean value){
-        if (world == null)
-            return;
-
+    private synchronized void set(int x, int y, int z, @NotNull World world, boolean value){
         CoordinateKey chunkKey = blockCoordinateToChunkKey(world.getUID(), x, y, z);
 
         // Get/Load/Create chunkstore
@@ -309,15 +240,15 @@ public class HashChunkManager implements ChunkManager {
         cStore.set(ix, y, iz, value);
     }
 
-    private CoordinateKey blockCoordinateToChunkKey(@NotNull UUID worldUid, int x, int y, int z) {
+    private @NotNull CoordinateKey blockCoordinateToChunkKey(@NotNull UUID worldUid, int x, int y, int z) {
         return toChunkKey(worldUid, x >> 4, z >> 4);
     }
 
-    private CoordinateKey toChunkKey(@NotNull UUID worldUid, int cx, int cz){
+    private @NotNull CoordinateKey toChunkKey(@NotNull UUID worldUid, int cx, int cz){
         return new CoordinateKey(worldUid, cx, cz);
     }
 
-    private CoordinateKey toRegionKey(@NotNull UUID worldUid, int cx, int cz) {
+    private @NotNull CoordinateKey toRegionKey(@NotNull UUID worldUid, int cx, int cz) {
         // Compute region index (32x32 chunk regions)
         int rx = cx >> 5;
         int rz = cz >> 5;
@@ -350,7 +281,4 @@ public class HashChunkManager implements ChunkManager {
             return Objects.hash(worldID, x, z);
         }
     }
-
-    @Override
-    public synchronized void cleanUp() {}
 }
