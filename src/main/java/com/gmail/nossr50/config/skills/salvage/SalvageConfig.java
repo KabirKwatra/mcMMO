@@ -43,7 +43,7 @@ public class SalvageConfig extends ConfigLoader {
         if(mcMMO.getUpgradeManager().shouldUpgrade(UpgradeType.FIX_NETHERITE_SALVAGE_QUANTITIES)) {
             mcMMO.p.getLogger().info("Fixing incorrect Salvage quantities on Netherite gear, this will only run once...");
             for(String namespacedkey : mcMMO.getMaterialMapStore().getNetheriteArmor()) {
-                config.set("Salvageables." + namespacedkey.toUpperCase() + ".MaximumQuantity", 4);
+                config.set("Salvageables." + namespacedkey.toUpperCase() + ".MaximumQuantity", 4); //TODO: Doesn't make sense to default to 4 for everything
             }
 
             try {
@@ -200,12 +200,12 @@ public class SalvageConfig extends ConfigLoader {
 
     private boolean noErrorsInSalvageable(List<String> issues) {
         if (!issues.isEmpty()) {
-            plugin.getLogger().warning("Errors have been found in: " + fileName);
-            plugin.getLogger().warning("The following issues were found:");
+            mcMMO.p.getLogger().warning("Errors have been found in: " + fileName);
+            mcMMO.p.getLogger().warning("The following issues were found:");
         }
 
         for (String issue : issues) {
-            plugin.getLogger().warning(issue);
+            mcMMO.p.getLogger().warning(issue);
         }
 
         return issues.isEmpty();

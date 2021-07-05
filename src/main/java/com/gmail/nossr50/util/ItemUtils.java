@@ -1,15 +1,15 @@
 package com.gmail.nossr50.util;
 
-import com.gmail.nossr50.config.AdvancedConfig;
-import com.gmail.nossr50.config.Config;
 import com.gmail.nossr50.config.experience.ExperienceConfig;
 import com.gmail.nossr50.config.party.ItemWeightConfig;
 import com.gmail.nossr50.datatypes.treasure.EnchantmentWrapper;
 import com.gmail.nossr50.datatypes.treasure.FishingTreasureBook;
 import com.gmail.nossr50.locale.LocaleLoader;
 import com.gmail.nossr50.mcMMO;
+import com.gmail.nossr50.skills.smelting.Smelting;
 import org.bukkit.ChatColor;
 import org.bukkit.Material;
+import org.bukkit.NamespacedKey;
 import org.bukkit.enchantments.Enchantment;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.FurnaceRecipe;
@@ -18,6 +18,7 @@ import org.bukkit.inventory.Recipe;
 import org.bukkit.inventory.meta.EnchantmentStorageMeta;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import java.util.Collections;
 import java.util.List;
@@ -35,12 +36,96 @@ public final class ItemUtils {
      * @param item Item to check
      * @return true if the item is a bow, false otherwise
      */
-    public static boolean isBow(ItemStack item) {
+    public static boolean isBow(@NotNull ItemStack item) {
         return mcMMO.getMaterialMapStore().isBow(item.getType().getKey().getKey());
+    }
+
+    public static boolean isCrossbow(@NotNull ItemStack item) {
+        return mcMMO.getMaterialMapStore().isCrossbow(item.getType().getKey().getKey());
     }
 
     public static boolean hasItemInEitherHand(@NotNull Player player, Material material) {
         return player.getInventory().getItemInMainHand().getType() == material || player.getInventory().getItemInOffHand().getType() == material;
+    }
+
+    public static boolean doesPlayerHaveEnchantmentOnArmor(@NotNull Player player, @NotNull String enchantmentByName) {
+        Enchantment enchantment = getEnchantment(enchantmentByName);
+
+        if(enchantment == null)
+            return false;
+
+        return doesPlayerHaveEnchantmentOnArmor(player, enchantment);
+    }
+
+    public static boolean doesPlayerHaveEnchantmentOnArmor(@NotNull Player player, @NotNull Enchantment enchantment) {
+        for(ItemStack itemStack : player.getInventory().getArmorContents()) {
+            if(itemStack != null) {
+                if(hasEnchantment(itemStack, enchantment))
+                    return true;
+            }
+        }
+
+        return false;
+    }
+
+    public static boolean doesPlayerHaveEnchantmentOnArmorOrHands(@NotNull Player player, @NotNull String enchantmentName) {
+        Enchantment enchantment = getEnchantment(enchantmentName);
+
+        if(enchantment == null)
+            return false;
+
+        return doesPlayerHaveEnchantmentOnArmorOrHands(player, enchantment);
+    }
+
+    public static boolean doesPlayerHaveEnchantmentOnArmorOrHands(@NotNull Player player, @NotNull Enchantment enchantment) {
+        if(doesPlayerHaveEnchantmentOnArmor(player, enchantment))
+            return true;
+
+        if(doesPlayerHaveEnchantmentInHands(player, enchantment))
+            return true;
+
+        return false;
+    }
+
+    public static boolean doesPlayerHaveEnchantmentInHands(@NotNull Player player, @NotNull NamespacedKey enchantmentNameKey) {
+        Enchantment enchantment = Enchantment.getByKey(enchantmentNameKey);
+
+        if(enchantment == null)
+            return false;
+
+        return doesPlayerHaveEnchantmentInHands(player, enchantment);
+    }
+
+    public static boolean doesPlayerHaveEnchantmentInHands(@NotNull Player player, @NotNull String enchantmentName) {
+        Enchantment enchantment = getEnchantment(enchantmentName);
+
+        if(enchantment == null)
+            return false;
+
+        return doesPlayerHaveEnchantmentInHands(player, enchantment);
+    }
+
+    public static boolean doesPlayerHaveEnchantmentInHands(@NotNull Player player, @NotNull Enchantment enchantment) {
+        return hasEnchantment(player.getInventory().getItemInMainHand(), enchantment) ||
+            hasEnchantment(player.getInventory().getItemInOffHand(), enchantment);
+    }
+
+    public static boolean hasEnchantment(@NotNull ItemStack itemStack, @NotNull Enchantment enchantment) {
+        if(itemStack.getItemMeta() != null) {
+            return itemStack.getItemMeta().hasEnchant(enchantment);
+        }
+
+        return false;
+    }
+
+    public static @Nullable Enchantment getEnchantment(@NotNull String enchantmentName) {
+        for(Enchantment enchantment : Enchantment.values()) {
+            if(enchantment.getKey().getKey().equalsIgnoreCase(enchantmentName)) {
+                return enchantment;
+            }
+        }
+
+        return null;
     }
 
     /**
@@ -100,7 +185,7 @@ public final class ItemUtils {
      * @return true if the item counts as unarmed, false otherwise
      */
     public static boolean isUnarmed(ItemStack item) {
-        if (Config.getInstance().getUnarmedItemsAsUnarmed()) {
+        if (mcMMO.p.getGeneralConfig().getUnarmedItemsAsUnarmed()) {
             return !isMinecraftTool(item);
         }
 
@@ -256,7 +341,7 @@ public final class ItemUtils {
     }
 
     public static boolean isSmeltable(ItemStack item) {
-        return item != null && item.getType().isBlock() && MaterialUtils.isOre(item.getType());
+        return item != null && Smelting.getSmeltXP(item) >= 1;
     }
 
     public static boolean isSmelted(ItemStack item) {
@@ -536,7 +621,7 @@ public final class ItemUtils {
         if(itemMeta == null)
             return;
 
-        itemMeta.addEnchant(Enchantment.DIG_SPEED, existingEnchantLevel + AdvancedConfig.getInstance().getEnchantBuff(), true);
+        itemMeta.addEnchant(Enchantment.DIG_SPEED, existingEnchantLevel + mcMMO.p.getAdvancedConfig().getEnchantBuff(), true);
         itemStack.setItemMeta(itemMeta);
     }
 

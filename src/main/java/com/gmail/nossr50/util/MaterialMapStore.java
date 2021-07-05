@@ -49,6 +49,7 @@ public class MaterialMapStore {
     private final @NotNull HashSet<String> pickAxes;
     private final @NotNull HashSet<String> tridents;
     private final @NotNull HashSet<String> bows;
+    private final @NotNull HashSet<String> crossbows;
     private final @NotNull HashSet<String> tools;
 
     private final @NotNull HashSet<String> enchantables;
@@ -88,6 +89,7 @@ public class MaterialMapStore {
         diamondTools = new HashSet<>();
         netheriteTools = new HashSet<>();
         bows = new HashSet<>();
+        crossbows = new HashSet<>();
         stringTools = new HashSet<>();
         tools = new HashSet<>();
 
@@ -204,16 +206,30 @@ public class MaterialMapStore {
         ores.add("gold_ore");
         ores.add("iron_ore");
         ores.add("lapis_ore");
+        ores.add("lapis_lazuli_ore");
         ores.add("redstone_ore");
         ores.add("emerald_ore");
         ores.add("ancient_debris");
         ores.add("nether_gold_ore");
         ores.add("gilded_blackstone");
+
+        //1.17 Mining Ore Blocks
+        ores.add("deepslate_redstone_ore");
+        ores.add("deepslate_copper_ore");
+        ores.add("deepslate_coal_ore");
+        ores.add("deepslate_diamond_ore");
+        ores.add("deepslate_emerald_ore");
+        ores.add("deepslate_iron_ore");
+        ores.add("deepslate_gold_ore");
+//        ores.add("deepslate_lapis_lazuli_ore");
+        ores.add("deepslate_lapis_ore");
+        ores.add("copper_ore");
     }
 
     private void fillIntendedTools() {
         intendedToolPickAxe.addAll(ores);
 
+        intendedToolPickAxe.add("lapis_lazuli_ore");
         intendedToolPickAxe.add("ice");
         intendedToolPickAxe.add("packed_ice");
         intendedToolPickAxe.add("blue_ice");
@@ -305,10 +321,6 @@ public class MaterialMapStore {
         intendedToolPickAxe.add("stone_button");
         intendedToolPickAxe.add("stone_pressure_plate");
         intendedToolPickAxe.add("terracotta");
-        intendedToolPickAxe.add("amethyst_bud");
-        intendedToolPickAxe.add("amethyst_cluster");
-        intendedToolPickAxe.add("block_of_amethyst");
-        intendedToolPickAxe.add("budding_amethyst");
         intendedToolPickAxe.add("ancient_debris");
         intendedToolPickAxe.add("crying_obsidian");
         intendedToolPickAxe.add("glowing_obsidian"); //be
@@ -393,6 +405,18 @@ public class MaterialMapStore {
         intendedToolPickAxe.add("waxed_cut_copper_stairs");
         intendedToolPickAxe.add("waxed_lightly_weathered_cut_copper_stairs");
 
+        //1.17 Mining (non-ores)
+        intendedToolPickAxe.add("calcite");
+        intendedToolPickAxe.add("smooth_basalt");
+        intendedToolPickAxe.add("block_of_amethyst");
+        intendedToolPickAxe.add("small_amethyst_bud");
+        intendedToolPickAxe.add("medium_amethyst_bud");
+        intendedToolPickAxe.add("large_amethyst_bud");
+        intendedToolPickAxe.add("amethyst_cluster");
+        intendedToolPickAxe.add("budding_amethyst");
+        intendedToolPickAxe.add("deepslate");
+        intendedToolPickAxe.add("cobbled_deepslate");
+        intendedToolPickAxe.add("tuff");
     }
 
     private void fillArmors() {
@@ -422,6 +446,7 @@ public class MaterialMapStore {
         enchantables.addAll(pickAxes);
         enchantables.addAll(tridents);
         enchantables.addAll(bows);
+        enchantables.addAll(crossbows);
 
         enchantables.add("shears");
         enchantables.add("fishing_rod");
@@ -447,6 +472,7 @@ public class MaterialMapStore {
         fillTridents();
         fillStringTools();
         fillBows();
+        fillCrossbows();
 
         //Tools collection
         tools.addAll(woodTools);
@@ -462,6 +488,10 @@ public class MaterialMapStore {
 
     private void fillBows() {
         bows.add("bow");
+    }
+
+    private void fillCrossbows() {
+        crossbows.add("crossbow");
     }
 
     private void fillStringTools() {
@@ -771,6 +801,14 @@ public class MaterialMapStore {
         return bows.contains(id);
     }
 
+    public boolean isCrossbow(@NotNull Material material) {
+        return isCrossbow(material.getKey().getKey());
+    }
+
+    public boolean isCrossbow(@NotNull String id) {
+        return crossbows.contains(id);
+    }
+
     public boolean isLeatherArmor(@NotNull Material material) {
         return isLeatherArmor(material.getKey().getKey());
     }
@@ -970,6 +1008,7 @@ public class MaterialMapStore {
         treeFellerDestructibleWhiteList.add("dark_oak_leaves");
         treeFellerDestructibleWhiteList.add("jungle_leaves");
         treeFellerDestructibleWhiteList.add("spruce_leaves");
+        treeFellerDestructibleWhiteList.add("azalea_leaves");
         treeFellerDestructibleWhiteList.add("nether_wart_block");
         treeFellerDestructibleWhiteList.add("warped_wart_block");
         treeFellerDestructibleWhiteList.add("brown_mushroom_block");
@@ -1250,13 +1289,14 @@ public class MaterialMapStore {
         toolBlackList.add("stonecutter");
         toolBlackList.add("lodestone");
         toolBlackList.add("respawn_anchor");
+        toolBlackList.add("sweet_berry_bush");
     }
 
-    public boolean isIntendedToolPickaxe(Material material) {
+    public boolean isIntendedToolPickaxe(@NotNull Material material) {
         return intendedToolPickAxe.contains(material.getKey().getKey());
     }
 
-    public boolean isIntendedToolPickaxe(String string) {
+    public boolean isIntendedToolPickaxe(@NotNull String string) {
         return intendedToolPickAxe.contains(string);
     }
 

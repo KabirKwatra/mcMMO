@@ -64,6 +64,9 @@ public class AcrobaticsManager extends SkillManager {
     }
 
     public boolean canDodge(Entity damager) {
+        if(getPlayer().isBlocking())
+            return false;
+
         if(!RankUtils.hasUnlockedSubskill(getPlayer(), SubSkillType.ACROBATICS_DODGE))
             return false;
 
@@ -72,7 +75,7 @@ public class AcrobaticsManager extends SkillManager {
                 return false;
             }
 
-            return skill.shouldProcess(damager);
+            return mcMMO.p.getSkillTools().canCombatSkillsTrigger(skill, damager);
         }
 
         return false;

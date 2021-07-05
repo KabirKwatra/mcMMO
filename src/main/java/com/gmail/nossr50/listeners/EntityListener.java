@@ -1,7 +1,5 @@
 package com.gmail.nossr50.listeners;
 
-import com.gmail.nossr50.config.AdvancedConfig;
-import com.gmail.nossr50.config.Config;
 import com.gmail.nossr50.config.WorldBlacklist;
 import com.gmail.nossr50.config.experience.ExperienceConfig;
 import com.gmail.nossr50.datatypes.player.McMMOPlayer;
@@ -10,6 +8,7 @@ import com.gmail.nossr50.datatypes.skills.subskills.interfaces.InteractType;
 import com.gmail.nossr50.events.fake.FakeEntityDamageByEntityEvent;
 import com.gmail.nossr50.events.fake.FakeEntityDamageEvent;
 import com.gmail.nossr50.events.fake.FakeEntityTameEvent;
+import com.gmail.nossr50.events.skills.rupture.McMMOEntityDamageByRuptureEvent;
 import com.gmail.nossr50.mcMMO;
 import com.gmail.nossr50.party.PartyManager;
 import com.gmail.nossr50.skills.archery.Archery;
@@ -19,6 +18,7 @@ import com.gmail.nossr50.skills.taming.Taming;
 import com.gmail.nossr50.skills.taming.TamingManager;
 import com.gmail.nossr50.skills.unarmed.UnarmedManager;
 import com.gmail.nossr50.util.BlockUtils;
+import com.gmail.nossr50.util.ItemUtils;
 import com.gmail.nossr50.util.Misc;
 import com.gmail.nossr50.util.Permissions;
 import com.gmail.nossr50.util.compat.layers.persistentdata.AbstractPersistentDataLayer;
@@ -65,6 +65,30 @@ public class EntityListener implements Listener {
         this.pluginRef = pluginRef;
         persistentDataLayer = mcMMO.getCompatibilityManager().getPersistentDataLayer();
     }
+
+//    @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
+//    public void onBlockDropItemEvent(EntityDropItemEvent event) {
+//        if(event.getEntity() instanceof Block) {
+//            Block itemDispensingBlock = (Block) event.getEntity();
+//
+//            //Is it a berry bush?
+//            if(itemDispensingBlock.getType().toString().equalsIgnoreCase("sweet_berry_bush")) {
+//                //Berry Bush Time!
+//                if (event.getEntity().getMetadata(mcMMO.BONUS_DROPS_METAKEY).size() > 0) {
+//                    Bukkit.broadcastMessage("Pop pop!");
+//                    BonusDropMeta bonusDropMeta = (BonusDropMeta) event.getEntity().getMetadata(mcMMO.BONUS_DROPS_METAKEY).get(0);
+//                    int bonusCount = bonusDropMeta.asInt();
+//
+//                    for (int i = 0; i < bonusCount; i++) {
+//                        Misc.spawnItemNaturally(event.getEntity().getLocation(), event.getItemDrop().getItemStack(), ItemSpawnReason.BONUS_DROPS);
+//                    }
+//                }
+//            }
+//
+//            if(event.getEntity().hasMetadata(mcMMO.BONUS_DROPS_METAKEY))
+//                event.getEntity().removeMetadata(mcMMO.BONUS_DROPS_METAKEY, pluginRef);
+//        }
+//    }
 
     @EventHandler(priority = EventPriority.MONITOR)
     public void onEntityTransform(EntityTransformEvent event) {
@@ -138,7 +162,7 @@ public class EntityListener implements Listener {
                 projectile.setMetadata(mcMMO.infiniteArrowKey, mcMMO.metadataValue);
             }
 
-            projectile.setMetadata(mcMMO.bowForceKey, new FixedMetadataValue(pluginRef, Math.min(event.getForce() * AdvancedConfig.getInstance().getForceMultiplier(), 1.0)));
+            projectile.setMetadata(mcMMO.bowForceKey, new FixedMetadataValue(pluginRef, Math.min(event.getForce() * mcMMO.p.getAdvancedConfig().getForceMultiplier(), 1.0)));
             projectile.setMetadata(mcMMO.arrowDistanceKey, new FixedMetadataValue(pluginRef, projectile.getLocation()));
             //Cleanup metadata in 1 minute in case normal collection falls through
             CombatUtils.delayArrowMetaCleanup((Projectile) projectile);
@@ -156,8 +180,7 @@ public class EntityListener implements Listener {
             Player player = (Player) event.getEntity().getShooter();
 
             /* WORLD GUARD MAIN FLAG CHECK */
-            if(WorldGuardUtils.isWorldGuardLoaded())
-            {
+            if(WorldGuardUtils.isWorldGuardLoaded()) {
                 if(!WorldGuardManager.getInstance().hasMainFlag(player))
                     return;
             }
@@ -174,10 +197,9 @@ public class EntityListener implements Listener {
                 if(!projectile.hasMetadata(mcMMO.arrowDistanceKey))
                     projectile.setMetadata(mcMMO.arrowDistanceKey, new FixedMetadataValue(pluginRef, projectile.getLocation()));
 
-                for (Enchantment enchantment : player.getInventory().getItemInMainHand().getEnchantments().keySet()) {
-                    if (enchantment.getKey().equals(piercingEnchantment)) {
-                        return;
-                    }
+                //Check both hands
+                if(ItemUtils.doesPlayerHaveEnchantmentInHands(player, "piercing")) {
+                    return;
                 }
 
                 if (RandomChanceUtil.isActivationSuccessful(SkillActivationType.RANDOM_LINEAR_100_SCALE_WITH_CAP, SubSkillType.ARCHERY_ARROW_RETRIEVAL, player)) {
@@ -228,9 +250,11 @@ public class EntityListener implements Listener {
             else if (isTracked) {
                 mcMMO.getPlaceStore().setTrue(block);
             }
-        } else if ((block.getType() == Material.REDSTONE_ORE)) {
+        } else if ((block.getType() == Material.REDSTONE_ORE || block.getType().getKey().getKey().equalsIgnoreCase("deepslate_redstone_ore"))) {
+            //Redstone ore fire this event and should be ignored
         }
         else {
+
             if (mcMMO.getPlaceStore().isTrue(block)) {
                 mcMMO.getPlaceStore().setFalse(block);
             }
@@ -269,7 +293,7 @@ public class EntityListener implements Listener {
      */
     @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
     public void onEntityDamageByEntity(EntityDamageByEntityEvent event) {
-        if (event instanceof FakeEntityDamageByEntityEvent) {
+        if (event instanceof FakeEntityDamageByEntityEvent || event instanceof McMMOEntityDamageByRuptureEvent) {
             return;
         }
 
@@ -443,7 +467,7 @@ public class EntityListener implements Listener {
         }
 
         //Party Friendly Fire
-        if(!Config.getInstance().getPartyFriendlyFire())
+        if(!mcMMO.p.getGeneralConfig().getPartyFriendlyFire())
             if ((PartyManager.inSameParty(defendingPlayer, attackingPlayer)
                     || PartyManager.areAllies(defendingPlayer, attackingPlayer))
                     && !(Permissions.friendlyFire(attackingPlayer)
@@ -465,6 +489,10 @@ public class EntityListener implements Listener {
         /* WORLD BLACKLIST CHECK */
         if(WorldBlacklist.isWorldBlacklisted(event.getEntity().getWorld()))
             return;
+
+        if(event.getEntity().hasMetadata(mcMMO.EXPLOSION_FROM_RUPTURE)) {
+            event.getEntity().removeMetadata(mcMMO.EXPLOSION_FROM_RUPTURE, mcMMO.p);
+        }
 
         if(event.getEntity() instanceof Player)
         {
@@ -574,6 +602,7 @@ public class EntityListener implements Listener {
                 switch (cause) {
                     case CONTACT:
                     case FIRE:
+                    case HOT_FLOOR:
                     case LAVA:
                         if (tamingManager.canUseEnvironmentallyAware()) {
                             tamingManager.processEnvironmentallyAware(wolf, event.getDamage());
@@ -637,7 +666,7 @@ public class EntityListener implements Listener {
      */
     @EventHandler(priority = EventPriority.LOWEST)
     public void onEntityDeathLowest(EntityDeathEvent event) {
-        mcMMO.getTransientMetadataTools().cleanAllMobMetadata(event.getEntity());
+        mcMMO.getTransientMetadataTools().cleanAllLivingEntityMetadata(event.getEntity());
     }
 
     /**
@@ -885,6 +914,16 @@ public class EntityListener implements Listener {
          * is based on how 'common' the item is We can adjust this quite easily
          * if we find something is giving too much of a bonus
          */
+
+        //Hacky 1.17 support
+        if(foodInHand.getKey().getKey().equalsIgnoreCase("glow_berries")) {
+            if (Permissions.isSubSkillEnabled(player, SubSkillType.HERBALISM_FARMERS_DIET)) {
+                event.setFoodLevel(UserManager.getPlayer(player).getHerbalismManager().farmersDiet(newFoodLevel));
+            }
+
+            return;
+        }
+
         switch (foodInHand) {
             case BAKED_POTATO: /*
                                 * RESTORES 3 HUNGER - RESTORES 5 1/2 HUNGER @

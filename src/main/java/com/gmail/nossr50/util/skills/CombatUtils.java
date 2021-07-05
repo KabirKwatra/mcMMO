@@ -1,6 +1,5 @@
 package com.gmail.nossr50.util.skills;
 
-import com.gmail.nossr50.config.AdvancedConfig;
 import com.gmail.nossr50.config.experience.ExperienceConfig;
 import com.gmail.nossr50.datatypes.experience.XPGainReason;
 import com.gmail.nossr50.datatypes.interactions.NotificationType;
@@ -93,11 +92,8 @@ public final class CombatUtils {
             mcMMOPlayer.checkAbilityActivation(PrimarySkillType.SWORDS);
         }
 
-        if(target.getHealth() - event.getFinalDamage() >= 1)
-        {
-            if (swordsManager.canUseRupture()) {
-                swordsManager.ruptureCheck(target);
-            }
+        if(target.getHealth() - event.getFinalDamage() > 0) {
+            swordsManager.processRupture(target);
         }
 
         //Add Stab Damage
@@ -344,7 +340,7 @@ public final class CombatUtils {
             }
 
             if (ItemUtils.isSword(player.getInventory().getItemInMainHand())) {
-                if (!PrimarySkillType.SWORDS.shouldProcess(target)) {
+                if (!mcMMO.p.getSkillTools().canCombatSkillsTrigger(PrimarySkillType.SWORDS, target)) {
                     return;
                 }
 
@@ -382,30 +378,30 @@ public final class CombatUtils {
             }
 
             if (ItemUtils.isSword(heldItem)) {
-                if (!PrimarySkillType.SWORDS.shouldProcess(target)) {
+                if (!mcMMO.p.getSkillTools().canCombatSkillsTrigger(PrimarySkillType.SWORDS, target)) {
                     return;
                 }
 
-                if (PrimarySkillType.SWORDS.getPermissions(player)) {
+                if (mcMMO.p.getSkillTools().doesPlayerHaveSkillPermission(player, PrimarySkillType.SWORDS)) {
                     processSwordCombat(target, player, event);
 
                 }
             }
             else if (ItemUtils.isAxe(heldItem)) {
-                if (!PrimarySkillType.AXES.shouldProcess(target)) {
+                if (!mcMMO.p.getSkillTools().canCombatSkillsTrigger(PrimarySkillType.AXES, target)) {
                     return;
                 }
 
-                if (PrimarySkillType.AXES.getPermissions(player)) {
+                if (mcMMO.p.getSkillTools().doesPlayerHaveSkillPermission(player, PrimarySkillType.AXES)) {
                     processAxeCombat(target, player, event);
                 }
             }
             else if (ItemUtils.isUnarmed(heldItem)) {
-                if (!PrimarySkillType.UNARMED.shouldProcess(target)) {
+                if (!mcMMO.p.getSkillTools().canCombatSkillsTrigger(PrimarySkillType.UNARMED, target)) {
                     return;
                 }
 
-                if (PrimarySkillType.UNARMED.getPermissions(player)) {
+                if (mcMMO.p.getSkillTools().doesPlayerHaveSkillPermission(player, PrimarySkillType.UNARMED)) {
                     processUnarmedCombat(target, player, event);
                 }
             }
@@ -415,10 +411,10 @@ public final class CombatUtils {
             Wolf wolf = (Wolf) painSource;
             AnimalTamer tamer = wolf.getOwner();
 
-            if (tamer instanceof Player && PrimarySkillType.TAMING.shouldProcess(target)) {
+            if (tamer instanceof Player && mcMMO.p.getSkillTools().canCombatSkillsTrigger(PrimarySkillType.TAMING, target)) {
                 Player master = (Player) tamer;
 
-                if (!Misc.isNPCEntityExcludingVillagers(master) && PrimarySkillType.TAMING.getPermissions(master)) {
+                if (!Misc.isNPCEntityExcludingVillagers(master) && mcMMO.p.getSkillTools().doesPlayerHaveSkillPermission(master, PrimarySkillType.TAMING)) {
                     processTamingCombat(target, master, wolf, event);
                 }
             }
@@ -427,17 +423,17 @@ public final class CombatUtils {
             Projectile arrow = (Projectile) painSource;
             ProjectileSource projectileSource = arrow.getShooter();
 
-            if (projectileSource instanceof Player && PrimarySkillType.ARCHERY.shouldProcess(target)) {
+            if (projectileSource instanceof Player && mcMMO.p.getSkillTools().canCombatSkillsTrigger(PrimarySkillType.ARCHERY, target)) {
                 Player player = (Player) projectileSource;
 
-                if (!Misc.isNPCEntityExcludingVillagers(player) && PrimarySkillType.ARCHERY.getPermissions(player)) {
+                if (!Misc.isNPCEntityExcludingVillagers(player) && mcMMO.p.getSkillTools().doesPlayerHaveSkillPermission(player, PrimarySkillType.ARCHERY)) {
                     processArcheryCombat(target, player, event, arrow);
                 } else {
                     //Cleanup Arrow
                     cleanupArrowMetadata(arrow);
                 }
 
-                if (target.getType() != EntityType.CREEPER && !Misc.isNPCEntityExcludingVillagers(player) && PrimarySkillType.TAMING.getPermissions(player)) {
+                if (target.getType() != EntityType.CREEPER && !Misc.isNPCEntityExcludingVillagers(player) && mcMMO.p.getSkillTools().doesPlayerHaveSkillPermission(player, PrimarySkillType.TAMING)) {
                     McMMOPlayer mcMMOPlayer = UserManager.getPlayer(player);
 
                     if(mcMMOPlayer == null)
@@ -537,7 +533,7 @@ public final class CombatUtils {
      * @return true if the player has access to the limit break
      */
     public static boolean canUseLimitBreak(@NotNull Player player, LivingEntity target, @NotNull SubSkillType subSkillType) {
-        if(target instanceof Player || AdvancedConfig.getInstance().canApplyLimitBreakPVE()) {
+        if(target instanceof Player || mcMMO.p.getAdvancedConfig().canApplyLimitBreakPVE()) {
             return RankUtils.hasUnlockedSubskill(player, subSkillType)
                     && Permissions.isSubSkillEnabled(player, subSkillType);
         } else {
@@ -714,7 +710,7 @@ public final class CombatUtils {
                         NotificationManager.sendPlayerInformation((Player)entity, NotificationType.SUBSKILL_MESSAGE, "Swords.Combat.SS.Struck");
                     }
 
-                    UserManager.getPlayer(attacker).getSwordsManager().ruptureCheck(target);
+                    UserManager.getPlayer(attacker).getSwordsManager().processRupture(livingEntity);
                     break;
 
                 case AXES:

@@ -10,9 +10,12 @@ import com.gmail.nossr50.util.compat.layers.persistentdata.SpigotPersistentDataL
 import com.gmail.nossr50.util.compat.layers.persistentdata.SpigotPersistentDataLayer_1_14;
 import com.gmail.nossr50.util.compat.layers.skills.AbstractMasterAnglerCompatibility;
 import com.gmail.nossr50.util.compat.layers.skills.MasterAnglerCompatibilityLayer;
+import com.gmail.nossr50.util.compat.layers.world.WorldCompatibilityLayer;
+import com.gmail.nossr50.util.compat.layers.world.WorldCompatibilityLayer_1_16_4;
 import com.gmail.nossr50.util.nms.NMSVersion;
 import com.gmail.nossr50.util.platform.MinecraftGameVersion;
 import com.gmail.nossr50.util.text.StringUtils;
+import org.bukkit.World;
 import org.bukkit.command.CommandSender;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -27,18 +30,19 @@ import java.util.HashMap;
  */
 //TODO: I need to rewrite this crap
 public class CompatibilityManager {
-    private HashMap<CompatibilityType, Boolean> supportedLayers;
+    private @NotNull HashMap<CompatibilityType, Boolean> supportedLayers;
     private boolean isFullyCompatibleServerSoftware = true; //true if all compatibility layers load successfully
-    private final MinecraftGameVersion minecraftGameVersion;
-    private final NMSVersion nmsVersion;
+    private final @NotNull MinecraftGameVersion minecraftGameVersion;
+    private final @NotNull NMSVersion nmsVersion;
 
     /* Compatibility Layers */
 //    private PlayerAttackCooldownExploitPreventionLayer playerAttackCooldownExploitPreventionLayer;
     private AbstractPersistentDataLayer persistentDataLayer;
     private AbstractBungeeSerializerCompatibilityLayer bungeeSerializerCompatibilityLayer;
     private AbstractMasterAnglerCompatibility masterAnglerCompatibility;
+    private WorldCompatibilityLayer worldCompatibilityLayer;
 
-    public CompatibilityManager(MinecraftGameVersion minecraftGameVersion) {
+    public CompatibilityManager(@NotNull MinecraftGameVersion minecraftGameVersion) {
         mcMMO.p.getLogger().info("Loading compatibility layers...");
         this.minecraftGameVersion = minecraftGameVersion;
         this.nmsVersion = determineNMSVersion();
@@ -67,32 +71,39 @@ public class CompatibilityManager {
         initPersistentDataLayer();
         initBungeeSerializerLayer();
         initMasterAnglerLayer();
+        initWorldCompatibilityLayer();
 
         isFullyCompatibleServerSoftware = true;
     }
 
+    private void initWorldCompatibilityLayer() {
+        if(minecraftGameVersion.isAtLeast(1, 17, 0)) {
+            worldCompatibilityLayer = new WorldCompatibilityLayer_1_16_4();
+        } else {
+            worldCompatibilityLayer = new WorldCompatibilityLayer() {
+                @Override
+                public int getMinWorldHeight(@NotNull World world) {
+                    return WorldCompatibilityLayer.super.getMinWorldHeight(world);
+                }
+
+                @Override
+                public int getMaxWorldHeight(@NotNull World world) {
+                    return WorldCompatibilityLayer.super.getMaxWorldHeight(world);
+                }
+            };
+        }
+    }
+
     private void initMasterAnglerLayer() {
-        if(minecraftGameVersion.getMinorVersion().asInt() >= 16 || minecraftGameVersion.getMajorVersion().asInt() >= 2) {
-            if(hasNewFishingHookAPI()) {
-                masterAnglerCompatibility = new MasterAnglerCompatibilityLayer();
-            }
+        if(minecraftGameVersion.isAtLeast(1, 16, 3)) {
+            masterAnglerCompatibility = new MasterAnglerCompatibilityLayer();
         } else {
             masterAnglerCompatibility = null;
         }
     }
 
-    private boolean hasNewFishingHookAPI() {
-        try {
-            Class<?> checkForClass = Class.forName("org.bukkit.entity.FishHook");
-            checkForClass.getMethod("getMinWaitTime");
-            return true;
-        } catch (ClassNotFoundException | NoSuchMethodException e) {
-            return false;
-        }
-    }
-
     private void initBungeeSerializerLayer() {
-        if(minecraftGameVersion.getMinorVersion().asInt() >= 16) {
+        if(minecraftGameVersion.isAtLeast(1, 16, 0)) {
             bungeeSerializerCompatibilityLayer = new BungeeModernSerializerCompatibilityLayer();
         } else {
             bungeeSerializerCompatibilityLayer = new BungeeLegacySerializerCompatibilityLayer();
@@ -102,7 +113,7 @@ public class CompatibilityManager {
     }
 
     private void initPersistentDataLayer() {
-        if(minecraftGameVersion.getMinorVersion().asInt() >= 14 || minecraftGameVersion.getMajorVersion().asInt() >= 2) {
+        if(minecraftGameVersion.isAtLeast(1, 14, 2)) {
             persistentDataLayer = new SpigotPersistentDataLayer_1_14();
         } else {
 
@@ -113,7 +124,7 @@ public class CompatibilityManager {
     }
 
     //TODO: move to text manager
-    public void reportCompatibilityStatus(CommandSender commandSender) {
+    public void reportCompatibilityStatus(@NotNull CommandSender commandSender) {
         if(isFullyCompatibleServerSoftware) {
             commandSender.sendMessage(LocaleLoader.getString("mcMMO.Template.Prefix",
                     "mcMMO is fully compatible with the currently running server software."));
@@ -130,7 +141,7 @@ public class CompatibilityManager {
         commandSender.sendMessage(LocaleLoader.getString("mcMMO.Template.Prefix", "NMS Status - " + nmsVersion.toString()));
     }
 
-    public boolean isCompatibilityLayerOperational(CompatibilityType compatibilityType) {
+    public boolean isCompatibilityLayerOperational(@NotNull CompatibilityType compatibilityType) {
         return supportedLayers.get(compatibilityType);
     }
 
@@ -143,6 +154,12 @@ public class CompatibilityManager {
     }
 
     private @NotNull NMSVersion determineNMSVersion() {
+        //This bit here helps prevent mcMMO breaking if it isn't updated but the game continues to update
+        if(minecraftGameVersion.isAtLeast(1, 17, 0)) {
+            return NMSVersion.NMS_1_17;
+        }
+
+        //Messy but it works
         if (minecraftGameVersion.getMajorVersion().asInt() == 1) {
             switch (minecraftGameVersion.getMinorVersion().asInt()) {
                 case 12:
@@ -165,6 +182,8 @@ public class CompatibilityManager {
                     } else if(minecraftGameVersion.getPatchVersion().asInt() >= 5) {
                         return NMSVersion.NMS_1_16_5;
                     }
+                case 17:
+                    return NMSVersion.NMS_1_17;
             }
         }
 
@@ -181,5 +200,13 @@ public class CompatibilityManager {
 
     public @Nullable AbstractMasterAnglerCompatibility getMasterAnglerCompatibilityLayer() {
         return masterAnglerCompatibility;
+    }
+
+    public @NotNull WorldCompatibilityLayer getWorldCompatibilityLayer() {
+        return worldCompatibilityLayer;
+    }
+
+    public @Nullable MinecraftGameVersion getMinecraftGameVersion() {
+        return minecraftGameVersion;
     }
 }

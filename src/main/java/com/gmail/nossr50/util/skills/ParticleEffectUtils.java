@@ -1,8 +1,9 @@
 package com.gmail.nossr50.util.skills;
 
-import com.gmail.nossr50.config.Config;
+import com.gmail.nossr50.mcMMO;
 import com.gmail.nossr50.util.sounds.SoundManager;
 import com.gmail.nossr50.util.sounds.SoundType;
+import org.apache.commons.lang.math.RandomUtils;
 import org.bukkit.Effect;
 import org.bukkit.Location;
 import org.bukkit.Material;
@@ -23,15 +24,46 @@ public final class ParticleEffectUtils {
     }
 
     public static void playBleedEffect(LivingEntity livingEntity) {
-        if (!Config.getInstance().getBleedEffectEnabled()) {
+        if (!mcMMO.p.getGeneralConfig().getBleedEffectEnabled()) {
             return;
         }
 
-        livingEntity.getWorld().playEffect(livingEntity.getEyeLocation(), Effect.STEP_SOUND, Material.REDSTONE_WIRE);
+        Location origin = livingEntity.getEyeLocation().clone();
+        World world = origin.getWorld();
+
+        double x = origin.getX();
+        double y = origin.getY();
+        double z = origin.getZ();
+
+        double offSetVal = 0.3D;
+
+        Location locA = new Location(world, x - offSetVal, y, z);
+        Location locB = new Location(world, x + offSetVal, y, z);
+        Location locC = new Location(world, x, y + offSetVal, z);
+        Location locD = new Location(world, x, y - offSetVal, z);
+        Location locE = new Location(world, x, y, z + offSetVal);
+        Location locF = new Location(world, x, y, z - offSetVal);
+
+        Location locG = new Location(world, x + offSetVal, y, z + offSetVal);
+        Location locH = new Location(world, x - offSetVal, y, z - offSetVal);
+        Location locI = new Location(world, x - offSetVal, y - offSetVal, z - offSetVal);
+        Location locJ = new Location(world, x + offSetVal, y - offSetVal, z + offSetVal);
+        Location locK = new Location(world, x - offSetVal, y + offSetVal, z - offSetVal);
+        Location locL = new Location(world, x - offSetVal, y + offSetVal, z - offSetVal);
+
+        Location[] particleLocations = new Location[]{ locA, locB, locC, locD, locE, locF, locG, locH, locI, locJ, locK, locL};
+
+        for(Location location : particleLocations) {
+            if(RandomUtils.nextInt(100) > 30) {
+                //TODO: Change
+                livingEntity.getWorld().playEffect(location, Effect.STEP_SOUND, Material.REDSTONE_WIRE);
+            }
+        }
     }
 
+
     public static void playDodgeEffect(Player player) {
-        if (!Config.getInstance().getDodgeEffectEnabled()) {
+        if (!mcMMO.p.getGeneralConfig().getDodgeEffectEnabled()) {
             return;
         }
 
@@ -39,7 +71,7 @@ public final class ParticleEffectUtils {
     }
 
     public static void playFluxEffect(Location location) {
-        if (!Config.getInstance().getFluxEffectEnabled()) {
+        if (!mcMMO.p.getGeneralConfig().getFluxEffectEnabled()) {
             return;
         }
 
@@ -68,7 +100,7 @@ public final class ParticleEffectUtils {
     }
 
     public static void playGreaterImpactEffect(LivingEntity livingEntity) {
-        if (!Config.getInstance().getGreaterImpactEffectEnabled()) {
+        if (!mcMMO.p.getGeneralConfig().getGreaterImpactEffectEnabled()) {
             return;
         }
 
@@ -78,7 +110,7 @@ public final class ParticleEffectUtils {
     }
 
     public static void playCallOfTheWildEffect(LivingEntity livingEntity) {
-        if (!Config.getInstance().getCallOfTheWildEffectEnabled()) {
+        if (!mcMMO.p.getGeneralConfig().getCallOfTheWildEffectEnabled()) {
             return;
         }
 
@@ -86,7 +118,7 @@ public final class ParticleEffectUtils {
     }
 
     public static void playAbilityDisabledEffect(Player player) {
-        if (!Config.getInstance().getAbilityDeactivationEffectEnabled()) {
+        if (!mcMMO.p.getGeneralConfig().getAbilityDeactivationEffectEnabled()) {
         }
 
         /*if (hasHeadRoom(player)) {

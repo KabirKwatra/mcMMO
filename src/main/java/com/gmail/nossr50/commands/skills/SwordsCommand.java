@@ -1,9 +1,9 @@
 package com.gmail.nossr50.commands.skills;
 
-import com.gmail.nossr50.config.AdvancedConfig;
 import com.gmail.nossr50.datatypes.skills.PrimarySkillType;
 import com.gmail.nossr50.datatypes.skills.SubSkillType;
 import com.gmail.nossr50.locale.LocaleLoader;
+import com.gmail.nossr50.mcMMO;
 import com.gmail.nossr50.util.Permissions;
 import com.gmail.nossr50.util.player.UserManager;
 import com.gmail.nossr50.util.skills.CombatUtils;
@@ -19,15 +19,16 @@ import java.util.List;
 public class SwordsCommand extends SkillCommand {
     private String counterChance;
     private String counterChanceLucky;
-    private int bleedLength;
-    private String bleedChance;
-    private String bleedChanceLucky;
     private String serratedStrikesLength;
     private String serratedStrikesLengthEndurance;
 
+    private String rupturePureTickDamageAgainstPlayers, rupturePureTickDamageAgainstMobs,
+            ruptureExplosionDamageAgainstPlayers, ruptureExplosionDamageAgainstMobs,
+            ruptureLengthSecondsAgainstPlayers, ruptureLengthSecondsAgainstMobs, ruptureChanceToApply, ruptureChanceToApplyLucky;
+
     private boolean canCounter;
     private boolean canSerratedStrike;
-    private boolean canBleed;
+    private boolean canRupture;
 
     public SwordsCommand() {
         super(PrimarySkillType.SWORDS);
@@ -43,12 +44,19 @@ public class SwordsCommand extends SkillCommand {
         }
 
         // SWORDS_RUPTURE
-        if (canBleed) {
-            bleedLength = UserManager.getPlayer(player).getSwordsManager().getRuptureBleedTicks();
+        if (canRupture) {
+            int ruptureRank = RankUtils.getRank(player, SubSkillType.SWORDS_RUPTURE);
+            ruptureLengthSecondsAgainstPlayers = String.valueOf(mcMMO.p.getAdvancedConfig().getRuptureDurationSeconds(true));
+            ruptureLengthSecondsAgainstMobs = String.valueOf(mcMMO.p.getAdvancedConfig().getRuptureDurationSeconds(false));
 
-            String[] bleedStrings = getAbilityDisplayValues(SkillActivationType.RANDOM_LINEAR_100_SCALE_WITH_CAP, player, SubSkillType.SWORDS_RUPTURE);
-            bleedChance = bleedStrings[0];
-            bleedChanceLucky = bleedStrings[1];
+            rupturePureTickDamageAgainstPlayers = String.valueOf(mcMMO.p.getAdvancedConfig().getRuptureTickDamage(true, ruptureRank));
+            rupturePureTickDamageAgainstMobs = String.valueOf(mcMMO.p.getAdvancedConfig().getRuptureTickDamage(false, ruptureRank));
+
+            ruptureExplosionDamageAgainstPlayers = String.valueOf(mcMMO.p.getAdvancedConfig().getRuptureExplosionDamage(true, ruptureRank));
+            ruptureExplosionDamageAgainstMobs = String.valueOf(mcMMO.p.getAdvancedConfig().getRuptureExplosionDamage(false, ruptureRank));
+
+            ruptureChanceToApply = String.valueOf(mcMMO.p.getAdvancedConfig().getRuptureChanceToApplyOnHit(ruptureRank) + "%");
+            ruptureChanceToApplyLucky = String.valueOf(mcMMO.p.getAdvancedConfig().getRuptureChanceToApplyOnHit(ruptureRank) * 1.33);
         }
         
         // SERRATED STRIKES
@@ -61,7 +69,7 @@ public class SwordsCommand extends SkillCommand {
 
     @Override
     protected void permissionsCheck(Player player) {
-        canBleed = canUseSubskill(player, SubSkillType.SWORDS_RUPTURE);
+        canRupture = canUseSubskill(player, SubSkillType.SWORDS_RUPTURE);
         canCounter = canUseSubskill(player, SubSkillType.SWORDS_COUNTER_ATTACK);
         canSerratedStrike = RankUtils.hasUnlockedSubskill(player, SubSkillType.SWORDS_SERRATED_STRIKES) && Permissions.serratedStrikes(player);
     }
@@ -70,24 +78,22 @@ public class SwordsCommand extends SkillCommand {
     protected List<String> statsDisplay(Player player, float skillValue, boolean hasEndurance, boolean isLucky) {
         List<String> messages = new ArrayList<>();
 
-        int ruptureTicks = UserManager.getPlayer(player).getSwordsManager().getRuptureBleedTicks();
-        double ruptureDamagePlayers =  RankUtils.getRank(player, SubSkillType.SWORDS_RUPTURE) >= 3 ? AdvancedConfig.getInstance().getRuptureDamagePlayer() * 1.5D : AdvancedConfig.getInstance().getRuptureDamagePlayer();
-        double ruptureDamageMobs =  RankUtils.getRank(player, SubSkillType.SWORDS_RUPTURE) >= 3 ? AdvancedConfig.getInstance().getRuptureDamageMobs() * 1.5D : AdvancedConfig.getInstance().getRuptureDamageMobs();
-
         if (canCounter) {
             messages.add(getStatMessage(SubSkillType.SWORDS_COUNTER_ATTACK, counterChance)
                     + (isLucky ? LocaleLoader.getString("Perks.Lucky.Bonus", counterChanceLucky) : ""));
         }
 
-        if (canBleed) {
-            messages.add(getStatMessage(SubSkillType.SWORDS_RUPTURE, bleedChance)
-                    + (isLucky ? LocaleLoader.getString("Perks.Lucky.Bonus", bleedChanceLucky) : ""));
+        if (canRupture) {
+            messages.add(getStatMessage(SubSkillType.SWORDS_RUPTURE, ruptureChanceToApply)
+                    + (isLucky ? LocaleLoader.getString("Perks.Lucky.Bonus", ruptureChanceToApplyLucky) : ""));
             messages.add(getStatMessage(true, true, SubSkillType.SWORDS_RUPTURE,
-                    String.valueOf(ruptureTicks),
-                    String.valueOf(ruptureDamagePlayers),
-                    String.valueOf(ruptureDamageMobs)));
+                    ruptureLengthSecondsAgainstPlayers,
+                    ruptureLengthSecondsAgainstMobs));
 
-            messages.add(LocaleLoader.getString("Swords.Combat.Rupture.Note"));
+            messages.add(LocaleLoader.getString("Swords.SubSkill.Rupture.Stat.TickDamage", rupturePureTickDamageAgainstPlayers, rupturePureTickDamageAgainstMobs));
+//            messages.add(LocaleLoader.getString("Swords.SubSkill.Rupture.Stat.ExplosionDamage", ruptureExplosionDamageAgainstPlayers, ruptureExplosionDamageAgainstMobs));
+
+            messages.add(LocaleLoader.getString("Swords.Combat.Rupture.Note.Update.One"));
         }
 
         if (canSerratedStrike) {

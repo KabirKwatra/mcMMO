@@ -1,6 +1,5 @@
 package com.gmail.nossr50.util;
 
-import com.gmail.nossr50.config.Config;
 import com.gmail.nossr50.datatypes.experience.XPGainReason;
 import com.gmail.nossr50.datatypes.experience.XPGainSource;
 import com.gmail.nossr50.datatypes.party.Party;
@@ -36,6 +35,7 @@ import com.gmail.nossr50.mcMMO;
 import com.gmail.nossr50.util.player.NotificationManager;
 import com.gmail.nossr50.util.player.UserManager;
 import com.gmail.nossr50.util.skills.CombatUtils;
+import com.gmail.nossr50.util.skills.SkillTools;
 import org.bukkit.block.Block;
 import org.bukkit.enchantments.Enchantment;
 import org.bukkit.entity.Entity;
@@ -406,10 +406,10 @@ public final class EventUtils {
             experienceChanged = event.getExperienceChanged();
             PlayerProfile playerProfile = UserManager.getPlayer(player).getProfile();
 
-            for (PrimarySkillType primarySkillType : PrimarySkillType.NON_CHILD_SKILLS) {
+            for (PrimarySkillType primarySkillType : SkillTools.NON_CHILD_SKILLS) {
                 String skillName = primarySkillType.toString();
                 int playerSkillLevel = playerProfile.getSkillLevel(primarySkillType);
-                int threshold = Config.getInstance().getHardcoreDeathStatPenaltyLevelThreshold();
+                int threshold = mcMMO.p.getGeneralConfig().getHardcoreDeathStatPenaltyLevelThreshold();
                 if(playerSkillLevel > threshold) {
                     playerProfile.modifySkill(primarySkillType, Math.max(threshold, playerSkillLevel - levelChanged.get(skillName)));
                     playerProfile.removeXp(primarySkillType, experienceChanged.get(skillName));
@@ -455,7 +455,7 @@ public final class EventUtils {
 
             PlayerProfile victimProfile = UserManager.getPlayer(victim).getProfile();
 
-            for (PrimarySkillType primarySkillType : PrimarySkillType.NON_CHILD_SKILLS) {
+            for (PrimarySkillType primarySkillType : SkillTools.NON_CHILD_SKILLS) {
                 String skillName = primarySkillType.toString();
                 int victimSkillLevel = victimProfile.getSkillLevel(primarySkillType);
 
@@ -479,7 +479,7 @@ public final class EventUtils {
     }
 
     public static McMMOPlayerAbilityDeactivateEvent callAbilityDeactivateEvent(Player player, SuperAbilityType ability) {
-        McMMOPlayerAbilityDeactivateEvent event = new McMMOPlayerAbilityDeactivateEvent(player, PrimarySkillType.byAbility(ability));
+        McMMOPlayerAbilityDeactivateEvent event = new McMMOPlayerAbilityDeactivateEvent(player, mcMMO.p.getSkillTools().getPrimarySkillBySuperAbility(ability));
         mcMMO.p.getServer().getPluginManager().callEvent(event);
 
         return event;

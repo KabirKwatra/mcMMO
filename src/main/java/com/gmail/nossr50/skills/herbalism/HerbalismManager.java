@@ -1,7 +1,6 @@
 package com.gmail.nossr50.skills.herbalism;
 
 import com.gmail.nossr50.api.ItemSpawnReason;
-import com.gmail.nossr50.config.Config;
 import com.gmail.nossr50.config.experience.ExperienceConfig;
 import com.gmail.nossr50.config.treasure.TreasureConfig;
 import com.gmail.nossr50.datatypes.BlockSnapshot;
@@ -40,6 +39,8 @@ import org.bukkit.entity.Player;
 import org.bukkit.event.block.BlockBreakEvent;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.PlayerInventory;
+import org.bukkit.scheduler.BukkitRunnable;
+import org.jetbrains.annotations.NotNull;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -62,6 +63,10 @@ public class HerbalismManager extends SkillManager {
     }
 
     public boolean canUseShroomThumb(BlockState blockState) {
+        if(!BlockUtils.canMakeShroomy(blockState)) {
+            return false;
+        }
+
         if(!RankUtils.hasUnlockedSubskill(getPlayer(), SubSkillType.HERBALISM_SHROOM_THUMB))
             return false;
 
@@ -69,8 +74,77 @@ public class HerbalismManager extends SkillManager {
         PlayerInventory inventory = player.getInventory();
         Material itemType = inventory.getItemInMainHand().getType();
 
-        return (itemType == Material.BROWN_MUSHROOM || itemType == Material.RED_MUSHROOM) && inventory.contains(Material.BROWN_MUSHROOM, 1) && inventory.contains(Material.RED_MUSHROOM, 1) && BlockUtils.canMakeShroomy(blockState) && Permissions.isSubSkillEnabled(player, SubSkillType.HERBALISM_SHROOM_THUMB);
+        return (itemType == Material.BROWN_MUSHROOM
+                || itemType == Material.RED_MUSHROOM)
+                && inventory.contains(Material.BROWN_MUSHROOM, 1)
+                && inventory.contains(Material.RED_MUSHROOM, 1)
+                && Permissions.isSubSkillEnabled(player, SubSkillType.HERBALISM_SHROOM_THUMB);
     }
+
+    public void processBerryBushHarvesting(@NotNull BlockState blockState) {
+        /* Check if the player is harvesting a berry bush */
+        if(blockState.getType().toString().equalsIgnoreCase("sweet_berry_bush")) {
+            if(mmoPlayer.isDebugMode()) {
+                mmoPlayer.getPlayer().sendMessage("Processing sweet berry bush rewards");
+            }
+            //Check the age
+            if(blockState.getBlockData() instanceof Ageable) {
+                int rewardByAge = 0;
+
+                Ageable ageable = (Ageable) blockState.getBlockData();
+
+                if(ageable.getAge() == 2) {
+                    rewardByAge = 1; //Normal XP
+                } else if(ageable.getAge() == 3) {
+                    rewardByAge = 2; //Double XP
+                } else {
+                    return; //Not old enough, back out of processing
+                }
+
+                if(mmoPlayer.isDebugMode()) {
+                    mmoPlayer.getPlayer().sendMessage("Bush Reward Multiplier: " + rewardByAge);
+                }
+
+                int xpReward = ExperienceConfig.getInstance().getXp(PrimarySkillType.HERBALISM, blockState) * rewardByAge;
+
+                if(mmoPlayer.isDebugMode()) {
+                    mmoPlayer.getPlayer().sendMessage("Bush XP: " + xpReward);
+                }
+
+                CheckBushAge checkBushAge = new CheckBushAge(blockState.getBlock(), mmoPlayer, xpReward);
+                checkBushAge.runTaskLater(mcMMO.p, 1);
+            }
+        }
+    }
+
+    private class CheckBushAge extends BukkitRunnable {
+
+        @NotNull Block block;
+        @NotNull McMMOPlayer mmoPlayer;
+        int xpReward;
+
+        public CheckBushAge(@NotNull Block block, @NotNull McMMOPlayer mmoPlayer, int xpReward) {
+            this.block = block;
+            this.mmoPlayer = mmoPlayer;
+            this.xpReward = xpReward;
+        }
+
+        @Override
+        public void run() {
+            BlockState blockState = block.getState();
+
+            if(blockState.getType().toString().equalsIgnoreCase("sweet_berry_bush")) {
+                if(blockState.getBlockData() instanceof Ageable) {
+                    Ageable ageable = (Ageable) blockState.getBlockData();
+
+                    if(ageable.getAge() <= 1) {
+                        applyXpGain(xpReward, XPGainReason.PVE, XPGainSource.SELF);
+                    }
+                }
+            }
+        }
+    }
+
 
     public boolean canUseHylianLuck() {
         if(!RankUtils.hasUnlockedSubskill(getPlayer(), SubSkillType.HERBALISM_HYLIAN_LUCK))
@@ -135,7 +209,7 @@ public class HerbalismManager extends SkillManager {
     public void processHerbalismBlockBreakEvent(BlockBreakEvent blockBreakEvent) {
         Player player = getPlayer();
 
-        if (Config.getInstance().getHerbalismPreventAFK() && player.isInsideVehicle()) {
+        if (mcMMO.p.getGeneralConfig().getHerbalismPreventAFK() && player.isInsideVehicle()) {
             return;
         }
 
@@ -182,8 +256,10 @@ public class HerbalismManager extends SkillManager {
 
         //TODO: The design of Green Terra needs to change, this is a mess
         if(Permissions.greenThumbPlant(getPlayer(), originalBreak.getType())) {
-            if(!getPlayer().isSneaking()) {
-                greenThumbActivated = processGreenThumbPlants(originalBreak, blockBreakEvent, isGreenTerraActive());
+            if(mcMMO.p.getGeneralConfig().isGreenThumbReplantableCrop(originalBreak.getType())) {
+                if(!getPlayer().isSneaking()) {
+                    greenThumbActivated = processGreenThumbPlants(originalBreak, blockBreakEvent, isGreenTerraActive());
+                }
             }
         }
 
@@ -688,7 +764,7 @@ public class HerbalismManager extends SkillManager {
      */
     private boolean processGreenThumbPlants(BlockState blockState, BlockBreakEvent blockBreakEvent, boolean greenTerra) {
         if (!ItemUtils.isHoe(blockBreakEvent.getPlayer().getInventory().getItemInMainHand())
-        && !ItemUtils.isAxe(blockBreakEvent.getPlayer().getInventory().getItemInMainHand())) {
+            && !ItemUtils.isAxe(blockBreakEvent.getPlayer().getInventory().getItemInMainHand())) {
             return false;
         }
 
